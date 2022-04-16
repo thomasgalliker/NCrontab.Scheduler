@@ -1,4 +1,6 @@
-﻿namespace NCrontab.Scheduler.ConsoleApp
+﻿using Microsoft.Extensions.Logging;
+
+namespace NCrontab.Scheduler.ConsoleApp
 {
     public class Program
     {
@@ -11,9 +13,17 @@
             Console.WriteLine(
                 $"Wait until the first task is scheduled for execution...{Environment.NewLine}");
 
-            // Create instance of Scheduler
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .AddConsole()
+                    .AddDebug();
+            });
+
+            // Create instance of Scheduler with or without ILogger<Scheduler>
             // or inject IScheduler using dependency injection.
-            IScheduler scheduler = new Scheduler();
+            var schedulerLogger = loggerFactory.CreateLogger<Scheduler>();
+            IScheduler scheduler = new Scheduler(schedulerLogger);
 
             // Subscribe Next event to get notified
             // for all tasks that are executed.
@@ -21,21 +31,21 @@
 
             // Add tasks with different cron schedules and actions.
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("* * * * *"), 
+                cronExpression: CrontabSchedule.Parse("* * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every minutes"); });
 
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("*/2 * * * *"), 
+                cronExpression: CrontabSchedule.Parse("*/2 * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minutes"); });
 
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("*/3 * * * *"), 
+                cronExpression: CrontabSchedule.Parse("*/3 * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every third minutes"); });
-           
+
             // Finally, start the scheduler and observe the action callbacks
             // as well as the Next event handler.
             await scheduler.StartAsync();
-            
+
             Console.ReadLine();
         }
 
