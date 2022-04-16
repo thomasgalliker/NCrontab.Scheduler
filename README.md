@@ -70,3 +70,6 @@ Each task run is isolated from all other scheduled tasks. The success or failure
 
 ### License
 This project is Copyright &copy; 2022 [Thomas Galliker](https://ch.linkedin.com/in/thomasgalliker). Free for non-commercial use. For commercial use please contact the author.
+
+### Links
+- https://crontab.guru
