@@ -12,6 +12,16 @@ namespace NCrontab.Scheduler
     /// <inheritdoc/>
     public class Scheduler : IScheduler
     {
+        private static readonly Lazy<IScheduler> Implementation = new Lazy<IScheduler>(CreateScheduler, LazyThreadSafetyMode.PublicationOnly);
+
+        public static IScheduler Current => Implementation.Value;
+
+        private static IScheduler CreateScheduler()
+        {
+            return new Scheduler();
+        }
+
+
         private static readonly TimeSpan DurationWarningThresold = new TimeSpan(0, 1, 0);
         private readonly object threadLock = new object();
 
