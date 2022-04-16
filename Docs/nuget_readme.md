@@ -1,0 +1,1 @@
+Please read the [readme.md](https://github.com/thomasgalliker/NCrontab.Scheduler/blob/develop/README.md) at github.
