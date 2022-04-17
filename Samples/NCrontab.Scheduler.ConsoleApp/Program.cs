@@ -36,11 +36,19 @@ namespace NCrontab.Scheduler.ConsoleApp
 
             scheduler.AddTask(
                 cronExpression: CrontabSchedule.Parse("*/2 * * * *"),
-                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minutes"); });
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minute"); });
 
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("*/3 * * * *"),
-                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every third minutes"); });
+                cronExpression: CrontabSchedule.Parse("0 * * * *"),
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every hour"); });
+            
+            scheduler.AddTask(
+                cronExpression: CrontabSchedule.Parse("0 0 * * *"),
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every day at midnight"); });
+            
+            scheduler.AddTask(
+                cronExpression: CrontabSchedule.Parse("0 0 1 1 *"),
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs on Januar 1 every year"); });
 
             // Finally, start the scheduler and observe the action callbacks
             // as well as the Next event handler.

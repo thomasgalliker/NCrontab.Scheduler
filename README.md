@@ -35,18 +35,26 @@ Tasks can be added to the scheduler either before or after the scheduler has bee
 
 ```C#
 scheduler.AddTask(
-    cronExpression: CrontabSchedule.Parse("* * * * *"), 
+    cronExpression: CrontabSchedule.Parse("* * * * *"),
     action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every minutes"); });
 
 scheduler.AddTask(
-    cronExpression: CrontabSchedule.Parse("*/2 * * * *"), 
-    action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minutes"); });
+    cronExpression: CrontabSchedule.Parse("*/2 * * * *"),
+    action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minute"); });
 
 scheduler.AddTask(
-    cronExpression: CrontabSchedule.Parse("*/3 * * * *"), 
-    action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every third minutes"); });
-           
+    cronExpression: CrontabSchedule.Parse("0 * * * *"),
+    action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every hour"); });
+            
+scheduler.AddTask(
+    cronExpression: CrontabSchedule.Parse("0 0 * * *"),
+    action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every day at midnight"); });
+            
+scheduler.AddTask(
+    cronExpression: CrontabSchedule.Parse("0 0 1 1 *"),
+    action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs on Januar 1 every year"); });    
 ```
+A very helpful resource for creating cron expression is https://crontab.guru.
 
 #### Starting and stopping
 Use method `StartAsync` to start the scheduler operations. This method can be awaited which blocks all further calls until all scheduled tasks have been canceled or removed.
@@ -71,5 +79,3 @@ Each task run is isolated from all other scheduled tasks. The success or failure
 ### License
 This project is Copyright &copy; 2022 [Thomas Galliker](https://ch.linkedin.com/in/thomasgalliker). Free for non-commercial use. For commercial use please contact the author.
 
-### Links
-- https://crontab.guru
