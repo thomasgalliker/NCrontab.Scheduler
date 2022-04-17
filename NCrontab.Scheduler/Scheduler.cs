@@ -149,6 +149,21 @@ namespace NCrontab.Scheduler
             }
         }
 
+        public void RemoveAllTasks()
+        {
+            this.logger.LogDebug($"RemoveAllTasks");
+
+            lock (this.threadLock)
+            {
+                this.scheduledTasks.Clear();
+
+                if (this.IsRunning)
+                {
+                    this.ResetScheduler();
+                }
+            }
+        }
+
         /// <inheritdoc/>
         public void Start(CancellationToken cancellationToken = default)
         {
@@ -386,7 +401,7 @@ namespace NCrontab.Scheduler
 
         public void Stop()
         {
-            this.logger.LogDebug("Stopping...");
+            this.logger.LogInformation("Stopping...");
 
             lock (this.threadLock)
             {

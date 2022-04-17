@@ -52,6 +52,8 @@ namespace NCrontab.Scheduler
 
         void RemoveTask(Guid taskId);
 
+        void RemoveAllTasks();
+
         /// <summary>
         /// All scheduling operations are aborted immediately.
         /// </summary>
