@@ -21,7 +21,6 @@ namespace NCrontab.Scheduler
             return new Scheduler();
         }
 
-
         private static readonly TimeSpan DurationWarningThresold = new TimeSpan(0, 1, 0);
         private readonly object threadLock = new object();
 
