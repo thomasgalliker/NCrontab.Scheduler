@@ -20,6 +20,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCrontab.Scheduler.Tests", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NCrontab.Scheduler.ConsoleApp", "Samples\NCrontab.Scheduler.ConsoleApp\NCrontab.Scheduler.ConsoleApp.csproj", "{8A36D992-7DD0-4131-9E72-CAC8AE4C21AC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCrontab.Scheduler.AspNetCore", "NCrontab.Scheduler.AspNetCore\NCrontab.Scheduler.AspNetCore.csproj", "{8BC3B64C-E41F-4D45-83E8-D4F3B4233AA5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCrontab.Scheduler.AspNetCoreSample", "Samples\NCrontab.Scheduler.AspNetCoreSample\NCrontab.Scheduler.AspNetCoreSample.csproj", "{3BB0C688-7B34-41D7-9CD9-801340491463}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +42,14 @@ Global
 		{8A36D992-7DD0-4131-9E72-CAC8AE4C21AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A36D992-7DD0-4131-9E72-CAC8AE4C21AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A36D992-7DD0-4131-9E72-CAC8AE4C21AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BC3B64C-E41F-4D45-83E8-D4F3B4233AA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BC3B64C-E41F-4D45-83E8-D4F3B4233AA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BC3B64C-E41F-4D45-83E8-D4F3B4233AA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BC3B64C-E41F-4D45-83E8-D4F3B4233AA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BB0C688-7B34-41D7-9CD9-801340491463}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BB0C688-7B34-41D7-9CD9-801340491463}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BB0C688-7B34-41D7-9CD9-801340491463}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BB0C688-7B34-41D7-9CD9-801340491463}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -45,6 +57,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{679E258E-BC24-4AB6-8731-5EE2B371F575} = {0BF171CD-494F-49C6-922B-8FE694FC63C9}
 		{8A36D992-7DD0-4131-9E72-CAC8AE4C21AC} = {1130BDCF-F4C4-43EE-974A-A81DCB4E44B8}
+		{3BB0C688-7B34-41D7-9CD9-801340491463} = {1130BDCF-F4C4-43EE-974A-A81DCB4E44B8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6595F588-9CC7-41B3-B8EB-20EE631A34D1}
