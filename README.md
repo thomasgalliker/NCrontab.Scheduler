@@ -1,7 +1,7 @@
 # NCrontab.Scheduler
 [![Version](https://img.shields.io/nuget/v/NCrontab.Scheduler.svg)](https://www.nuget.org/packages/NCrontab.Scheduler)  [![Downloads](https://img.shields.io/nuget/dt/NCrontab.Scheduler.svg)](https://www.nuget.org/packages/NCrontab.Scheduler)
 
-<img src="https://github.com/thomasgalliker/NCrontab.Scheduler/raw/develop/logo.png" width="100" height="100" alt="NCrontab.Scheduler" align="right"></img>
+<img src="https://raw.githubusercontent.com/thomasgalliker/NCrontab.Scheduler/develop/logo.png" width="100" height="100" alt="NCrontab.Scheduler" align="right"></img>
 
 NCrontab.Scheduler is a simple, open source task scheduling system that can be used in any .NET application.
 The main component of this project is a thread-safe scheduler which facilitates very basic scheduling operations like adding, remove or changing task schedules.
