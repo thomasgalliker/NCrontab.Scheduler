@@ -15,7 +15,7 @@
 		<PackageLicenseUrl>http://opensource.org/licenses/Apache-2.0</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
 		<RepositoryUrl>https://github.com/thomasgalliker/NCrontab.Scheduler</RepositoryUrl>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageReadmeFile>nuget_readme.md</PackageReadmeFile>
 		<SignAssembly>True</SignAssembly>
 		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
@@ -36,7 +36,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Include="..\README.md">
+	  <None Include="..\Docs\nuget_readme.md">
 	    <Pack>True</Pack>
 	    <PackagePath>\</PackagePath>
 	  </None>
