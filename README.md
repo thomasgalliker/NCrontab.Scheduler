@@ -27,7 +27,7 @@ Alternatively, you can access the provided singleton instance `Scheduler.Current
 serviceCollection.AddSingleton<IScheduler>(x => new Scheduler(x.GetRequiredService<ILogger<Scheduler>>()));
 ```
 
-#### Add scheduled tasks
+#### Add Scheduled Tasks
 Use method `AddTask` with all the provided convenience overloads to add tasks to the scheduler.
 A task is composed of a cron pattern which specifies the recurrance interval and an action (for synchronous callbacks) or a task (for asynchronous callbacks).
 
@@ -56,24 +56,32 @@ scheduler.AddTask(
 ```
 A very helpful resource for creating cron expression is https://crontab.guru.
 
-#### Starting and stopping
+#### Starting and Stopping
 Use method `StartAsync` to start the scheduler operations. This method can be awaited which blocks all further calls until all scheduled tasks have been canceled or removed.
 Use `Start` if you prefer to start the scheduler without blocking the current execution path of your program.
 If the scheduler is started without having added any tasks, it just waits (and blocks) until tasks are added.
 
 `Stop` attempts to cancel all scheduled tasks immediately.
 
-### Design Considerations
-#### Scheduler algorithm
-The scheduler calculates its priorities based on the given cron expression for each task.
-Each scheduling iteration attempts to find the task with the earliest possible execution date/time.
-It calculates the delay from the current date/time to selected earliest possible execution date/time.
-If tasks are added or removed during this wait period, the evaluation of the earliest possible execution date/time has to be repeated.
+### About Scheduling
+Real-time systems are systems that are required to respond to an external event in some timely manner.
+"Timely manner" is often misinterpreted as "very fast".
+However, for many applications this just means the system needs to react in a specific time. It can be seconds, minutes, hours or even years.
+Schedulers such as NCrontab.Scheduler can help to satisfy such timing constraints. 
 
-#### Thread-safety
+#### Scheduler Algorithm
+NCrontab.Scheduler is a classic implementation of the Earliest Deadline First (EDF) algorithm.
+The EDF algorithm will always schedule the task(s) whose deadline is soonest.
+
+The scheduler provides a dynamic prioritization of tasks by evaluating the cron expressions of the tasks.
+Each scheduling iteration attempts to find the task with the earliest possible execution date/time.
+
+If tasks are added or removed during while waiting for the next execution, the evaluation of the earliest possible execution date/time is re-evaluated.
+
+#### Thread-Safety
 All scheduler operations are kept thread-safe. Adding and removing tasks as well as starting and stopping the scheduler can be done concurrently.
 
-#### Task isolation
+#### Task Isolation
 Each task run is isolated from all other scheduled tasks. The success or failure of execution does not have any negative side effect on other scheduled tasks.
 
 ### License
