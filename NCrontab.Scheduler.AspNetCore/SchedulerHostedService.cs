@@ -5,6 +5,12 @@ using Microsoft.Extensions.Hosting;
 
 namespace NCrontab.Scheduler.AspNetCore
 {
+    /// <summary>
+    /// Hosts an <seealso cref="IScheduler"/> instance and automatically starts/stops
+    /// when this <seealso cref="SchedulerHostedService"/> is started/stopped.
+    /// Call <code>IServiceCollection.AddHostedService<SchedulerHostedService>()</code>
+    /// to activate this hosted service.
+    /// </summary>
     public class SchedulerHostedService : IHostedService
     {
         private readonly IScheduler scheduler;
