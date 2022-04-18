@@ -21,7 +21,7 @@ namespace NCrontab.Scheduler.AspNetCoreSample.Controllers
         public void AddTaskEveryMinute(string cronExpression = "* * * * *")
         {
             this.scheduler.AddTask(
-              cronExpression: CrontabSchedule.Parse("* * * * *"),
+              crontabSchedule: CrontabSchedule.Parse("* * * * *"),
               action: ct => { this.logger.LogInformation($"{DateTime.Now:O} -> Task runs every minutes"); });
         }
 

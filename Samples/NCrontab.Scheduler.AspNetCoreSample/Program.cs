@@ -1,6 +1,6 @@
 using NCrontab.Scheduler;
 using NCrontab.Scheduler.AspNetCore.Extensions;
-using NCrontab.Scheduler.AspNetCoreSample;
+using NCrontab.Scheduler.AspNetCoreSample.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,10 +12,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScheduler();
 
 // Add nightly task to scheduler
-builder.Services.AddSingleton<ITask, NightlyTask>();
+builder.Services.AddSingleton<IScheduledTask, NightlyTask>();
 
 // Add nightly task (async) to scheduler
-builder.Services.AddSingleton<IAsyncTask, NightlyAsyncTask>();
+builder.Services.AddSingleton<IAsyncScheduledTask, NightlyAsyncTask>();
 
 var app = builder.Build();
 

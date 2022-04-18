@@ -7,9 +7,9 @@ namespace NCrontab.Scheduler
 {
     public interface IScheduler : IDisposable
     {
-        void ChangeScheduleAndResetScheduler(Guid id, CrontabSchedule cronExpression);
+        void ChangeScheduleAndResetScheduler(Guid taskId, CrontabSchedule cronExpression);
 
-        void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid Id, CrontabSchedule CrontabSchedule)> scheduleChanges);
+        void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid TaskId, CrontabSchedule CrontabSchedule)> scheduleChanges);
 
         /// <summary>
         /// Starts the scheduling operations.

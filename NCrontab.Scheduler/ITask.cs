@@ -1,11 +1,11 @@
-﻿using System.Threading;
+﻿using System;
 
 namespace NCrontab.Scheduler
 {
     public interface ITask
     {
-        string CronExpression { get; }
+        public Guid Id { get; }
 
-        void Run(CancellationToken cancellationToken);
+        CrontabSchedule CrontabSchedule { get; set; }
     }
 }

@@ -14,13 +14,13 @@ namespace NCrontab.Scheduler.AspNetCore
     public class SchedulerHostedService : IHostedService
     {
         private readonly IScheduler scheduler;
-        private readonly IEnumerable<IAsyncTask> scheduledTasks;
-        private readonly IEnumerable<ITask> scheduledActions;
+        private readonly IEnumerable<IAsyncScheduledTask> scheduledTasks;
+        private readonly IEnumerable<IScheduledTask> scheduledActions;
 
         public SchedulerHostedService(
             IScheduler scheduler,
-            IEnumerable<IAsyncTask> scheduledTasks,
-            IEnumerable<ITask> scheduledActions)
+            IEnumerable<IAsyncScheduledTask> scheduledTasks,
+            IEnumerable<IScheduledTask> scheduledActions)
         {
             this.scheduler = scheduler;
             this.scheduledTasks = scheduledTasks;
@@ -42,7 +42,7 @@ namespace NCrontab.Scheduler.AspNetCore
             {
                 foreach (var scheduledTask in this.scheduledTasks)
                 {
-                    this.scheduler.AddTask(scheduledTask.CronExpression, (ct) => scheduledTask.RunAsync(ct));
+                    this.scheduler.AddTask(scheduledTask.CrontabSchedule, (ct) => scheduledTask.RunAsync(ct));
                 }
             }
         }
@@ -53,7 +53,7 @@ namespace NCrontab.Scheduler.AspNetCore
             {
                 foreach (var scheduledAction in this.scheduledActions)
                 {
-                    this.scheduler.AddTask(scheduledAction.CronExpression, (ct) => scheduledAction.Run(ct));
+                    this.scheduler.AddTask(scheduledAction.CrontabSchedule, (ct) => scheduledAction.Run(ct));
                 }
             }
         }

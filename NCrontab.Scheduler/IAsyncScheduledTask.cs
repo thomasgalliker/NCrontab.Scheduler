@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 
 namespace NCrontab.Scheduler
 {
-    public interface IAsyncTask
+    public interface IAsyncScheduledTask : ITask
     {
-        string CronExpression { get; }
-
         Task RunAsync(CancellationToken cancellationToken);
     }
 }
