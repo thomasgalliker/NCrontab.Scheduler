@@ -25,18 +25,14 @@ namespace NCrontab.Scheduler
         /// <summary>
         /// Adds a task to the scheduler.
         /// </summary>
-        /// <param name="taskId">The task identifier.</param>
-        /// <param name="crontabSchedule">The crontab schedule.</param>
-        /// <param name="action">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
-        void AddTask(Guid taskId, CrontabSchedule crontabSchedule, Action<CancellationToken> action);
+        /// <param name="scheduledTask">The scheduled task (synchronous action).</param>
+        void AddTask(IScheduledTask scheduledTask);
 
         /// <summary>
         /// Adds a task to the scheduler.
         /// </summary>
-        /// <param name="taskId">The task identifier.</param>
-        /// <param name="crontabSchedule">The crontab schedule.</param>
-        /// <param name="action">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
-        void AddTask(Guid taskId, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action);
+        /// <param name="scheduledTask">The scheduled task (asynchronous action).</param>
+        void AddTask(IAsyncScheduledTask scheduledTask);
 
         /// <summary>
         /// Next event fires if the scheduler triggers the execution

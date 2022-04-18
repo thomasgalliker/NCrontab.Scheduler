@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using NCrontab.Scheduler.Internals;
 
 namespace NCrontab.Scheduler
 {
@@ -57,6 +58,18 @@ namespace NCrontab.Scheduler
         /// <summary>
         /// Adds a task to the scheduler.
         /// </summary>
+        /// <param name="taskId">The task identifier.</param>
+        /// <param name="crontabSchedule">The crontab schedule.</param>
+        /// <param name="action">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
+        public static void AddTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
+        {
+            var scheduledTask = new ScheduledTask(taskId, crontabSchedule, action);
+            scheduler.AddTask(scheduledTask);
+        }
+
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
         /// <param name="cronExpression">The cron expression.</param>
         /// <param name="action">The callback action which is called whenever the <paramref name="cronExpression"/> is planned to execute.</param>
         /// <returns>The task identifier.</returns>
@@ -91,6 +104,18 @@ namespace NCrontab.Scheduler
         {
             var crontabSchedule = CrontabSchedule.Parse(cronExpression);
             scheduler.AddTask(taskId, crontabSchedule, action);
+        }
+
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
+        /// <param name="taskId">The task identifier.</param>
+        /// <param name="crontabSchedule">The crontab schedule.</param>
+        /// <param name="action">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
+        public static void AddTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
+        {
+            var asyncScheduledTask = new AsyncScheduledTask(taskId, crontabSchedule, action);
+            scheduler.AddTask(asyncScheduledTask);
         }
     }
 }

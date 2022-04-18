@@ -53,21 +53,17 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
-        public void AddTask(Guid taskId, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
+        public void AddTask(IScheduledTask scheduledTask)
         {
-            this.logger.LogDebug($"AddTask: taskId={taskId:B}, crontabSchedule={crontabSchedule}");
-
-            var scheduledTask = new ScheduledTask(taskId, crontabSchedule, action);
+            this.logger.LogDebug($"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
 
             this.AddTaskInternal(scheduledTask);
         }
-
+        
         /// <inheritdoc/>
-        public void AddTask(Guid taskId, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
+        public void AddTask(IAsyncScheduledTask scheduledTask)
         {
-            this.logger.LogDebug($"AddTask: taskId={taskId:B}, crontabSchedule={crontabSchedule}");
-
-            var scheduledTask = new AsyncScheduledTask(taskId, crontabSchedule, action);
+            this.logger.LogDebug($"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
 
             this.AddTaskInternal(scheduledTask);
         }
