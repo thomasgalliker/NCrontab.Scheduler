@@ -24,7 +24,7 @@ namespace NCrontab.Scheduler
         private static readonly TimeSpan DurationWarningThresold = new TimeSpan(0, 1, 0);
         private readonly object threadLock = new object();
 
-        private readonly List<ScheduledTaskInternal> scheduledTasks = new List<ScheduledTaskInternal>();
+        private readonly List<ITask> scheduledTasks = new List<ITask>();
         private readonly IDateTime dateTime;
         private readonly ILogger<Scheduler> logger;
         private CancellationTokenSource localCancellationTokenSource;
@@ -53,54 +53,22 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
-        public void AddTask(Guid id, string cronExpression, Func<CancellationToken, Task> func)
+        public void AddTask(IScheduledTask scheduledTask)
         {
-            this.AddTask(id, CrontabSchedule.Parse(cronExpression), func);
+            this.logger.LogDebug($"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+
+            this.AddTaskInternal(scheduledTask);
         }
-
+        
         /// <inheritdoc/>
-        public void AddTask(Guid id, CrontabSchedule cronExpression, Func<CancellationToken, Task> func)
+        public void AddTask(IAsyncScheduledTask scheduledTask)
         {
-            this.logger.LogDebug($"AddTask: id={id:B}, cronExpression={cronExpression}");
-
-            var scheduledTask = new ScheduledTaskInternal(id, cronExpression, func);
+            this.logger.LogDebug($"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
 
             this.AddTaskInternal(scheduledTask);
         }
 
-        /// <inheritdoc/>
-        public Guid AddTask(string cronExpression, Func<CancellationToken, Task> func)
-        {
-            return this.AddTask(CrontabSchedule.Parse(cronExpression), func);
-        }
-
-        /// <inheritdoc/>
-        public Guid AddTask(CrontabSchedule cronExpression, Func<CancellationToken, Task> func)
-        {
-            var id = Guid.NewGuid();
-
-            this.AddTask(id, cronExpression, func);
-
-            return id;
-        }
-
-        /// <inheritdoc/>
-        public void AddTask(Guid id, string cronExpression, Action<CancellationToken> action)
-        {
-            this.AddTask(id, CrontabSchedule.Parse(cronExpression), action);
-        }
-
-        /// <inheritdoc/>
-        public void AddTask(Guid id, CrontabSchedule cronExpression, Action<CancellationToken> action)
-        {
-            this.logger.LogDebug($"AddTask: id={id:B}, cronExpression={cronExpression}");
-
-            var scheduledTask = new ScheduledTaskInternal(id, cronExpression, action);
-
-            this.AddTaskInternal(scheduledTask);
-        }
-
-        private void AddTaskInternal(ScheduledTaskInternal scheduledTask)
+        private void AddTaskInternal(ITask scheduledTask)
         {
             lock (this.threadLock)
             {
@@ -111,22 +79,6 @@ namespace NCrontab.Scheduler
                     this.ResetScheduler();
                 }
             }
-        }
-
-        /// <inheritdoc/>
-        public Guid AddTask(string cronExpression, Action<CancellationToken> action)
-        {
-            return this.AddTask(CrontabSchedule.Parse(cronExpression), action);
-        }
-
-        /// <inheritdoc/>
-        public Guid AddTask(CrontabSchedule cronExpression, Action<CancellationToken> action)
-        {
-            var id = Guid.NewGuid();
-
-            this.AddTask(id, cronExpression, action);
-
-            return id;
         }
 
         /// <inheritdoc/>
@@ -149,6 +101,7 @@ namespace NCrontab.Scheduler
             }
         }
 
+        /// <inheritdoc/>
         public void RemoveAllTasks()
         {
             this.logger.LogDebug($"RemoveAllTasks");
@@ -162,12 +115,6 @@ namespace NCrontab.Scheduler
                     this.ResetScheduler();
                 }
             }
-        }
-
-        /// <inheritdoc/>
-        public void Start(CancellationToken cancellationToken = default)
-        {
-            Task.Run(() => this.StartAsync(cancellationToken));
         }
 
         /// <inheritdoc/>
@@ -209,7 +156,7 @@ namespace NCrontab.Scheduler
                     {
                         this.logger.LogInformation(
                             $"Scheduler is waiting for tasks. " +
-                            $"Use {nameof(this.AddTask)} methods to add tasks.");
+                            $"Use {nameof(IScheduler.AddTask)} methods to add tasks.");
                     }
                     else
                     {
@@ -239,7 +186,7 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    ScheduledTaskInternal[] scheduledTasksToRun;
+                    ITask[] scheduledTasksToRun;
                     lock (this.threadLock)
                     {
                         scheduledTasksToRun = this.scheduledTasks.Where(m => taskIds.Contains(m.Id)).ToArray();
@@ -254,30 +201,31 @@ namespace NCrontab.Scheduler
 
                         this.RaiseNextEvent(startTime, scheduledTasksToRun);
 
-                        foreach (var scheduledTask in scheduledTasksToRun)
+                        foreach (var task in scheduledTasksToRun)
                         {
-                            this.logger.LogDebug($"Starting task with Id={scheduledTask.Id:B}...");
                             if (this.localCancellationTokenSource.IsCancellationRequested)
                             {
                                 this.logger.LogDebug("Cancellation requested");
                                 break;
                             }
 
+                            this.logger.LogDebug($"Starting task with Id={task.Id:B}...");
+
                             try
                             {
-                                if (scheduledTask.Action is object)
+                                if (task is IScheduledTask scheduledTask)
                                 {
-                                    scheduledTask.Action.Invoke(this.localCancellationTokenSource.Token);
+                                    scheduledTask.Run(this.localCancellationTokenSource.Token);
                                 }
-
-                                if (scheduledTask.ActionTask is object)
+                                
+                                if (task is IAsyncScheduledTask asyncScheduledTask)
                                 {
-                                    await scheduledTask.ActionTask.Invoke(this.localCancellationTokenSource.Token);
+                                    await asyncScheduledTask.RunAsync(this.localCancellationTokenSource.Token);
                                 }
                             }
                             catch (Exception e)
                             {
-                                this.logger.LogError(e, $"Task with Id={scheduledTask.Id:B} failed with exception");
+                                this.logger.LogError(e, $"Task with Id={task.Id:B} failed with exception");
                             }
                         }
 
@@ -325,7 +273,7 @@ namespace NCrontab.Scheduler
             {
                 foreach (var scheduledTask in this.scheduledTasks)
                 {
-                    var nextTimeToRun = scheduledTask.CronExpression.GetNextOccurrence(now);
+                    var nextTimeToRun = scheduledTask.CrontabSchedule.GetNextOccurrence(now);
                     if (nextTimeToRun == default)
                     {
                         continue;
@@ -347,22 +295,32 @@ namespace NCrontab.Scheduler
             return (lowestNextTimeToRun, lowestIds);
         }
 
-        public void ChangeScheduleAndResetScheduler(Guid id, CrontabSchedule cronExpression)
+        public void ChangeScheduleAndResetScheduler(Guid taskId, CrontabSchedule cronExpression)
         {
-            this.ChangeSchedulesAndResetScheduler(new List<(Guid, CrontabSchedule)> { (id, cronExpression) });
+            this.ChangeSchedulesAndResetScheduler(new List<(Guid, CrontabSchedule)> { (taskId, cronExpression) });
         }
 
-        public void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid Id, CrontabSchedule CrontabSchedule)> scheduleChanges)
+        public void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid TaskId, CrontabSchedule CrontabSchedule)> scheduleChanges)
         {
+            var hasChange = false;
             lock (this.threadLock)
             {
                 foreach (var scheduleItem in scheduleChanges)
                 {
-                    this.scheduledTasks.Single(t => t.Id == scheduleItem.Id).SetCronExpression(scheduleItem.CrontabSchedule);
+                    this.scheduledTasks.Single(t => t.Id == scheduleItem.TaskId).CrontabSchedule = scheduleItem.CrontabSchedule;
+                    var existingScheduledTask = this.scheduledTasks.SingleOrDefault(t => t.Id == scheduleItem.TaskId);
+                    if (existingScheduledTask != null)
+                    {
+                        existingScheduledTask.CrontabSchedule = scheduleItem.CrontabSchedule;
+                        hasChange = true;
+                    }
                 }
             }
 
-            this.ResetScheduler();
+            if (this.IsRunning && hasChange)
+            {
+                this.ResetScheduler();
+            }
         }
 
         private void ResetScheduler()
@@ -386,7 +344,7 @@ namespace NCrontab.Scheduler
 
         public event EventHandler<ScheduledEventArgs> Next;
 
-        private void RaiseNextEvent(DateTime signalTime, params ScheduledTaskInternal[] scheduledTasks)
+        private void RaiseNextEvent(DateTime signalTime, params ITask[] scheduledTasks)
         {
             try
             {

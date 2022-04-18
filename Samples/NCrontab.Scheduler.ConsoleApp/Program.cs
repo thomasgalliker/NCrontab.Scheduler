@@ -31,23 +31,23 @@ namespace NCrontab.Scheduler.ConsoleApp
 
             // Add tasks with different cron schedules and actions.
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("* * * * *"),
+                crontabSchedule: CrontabSchedule.Parse("* * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every minutes"); });
 
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("*/2 * * * *"),
+                crontabSchedule: CrontabSchedule.Parse("*/2 * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minute"); });
 
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("0 * * * *"),
+                crontabSchedule: CrontabSchedule.Parse("0 * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every hour"); });
             
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("0 0 * * *"),
+                crontabSchedule: CrontabSchedule.Parse("0 0 * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every day at midnight"); });
             
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("0 0 1 1 *"),
+                crontabSchedule: CrontabSchedule.Parse("0 0 1 1 *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs on Januar 1 every year"); });
 
             // Finally, start the scheduler and observe the action callbacks
