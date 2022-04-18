@@ -11,7 +11,7 @@ namespace NCrontab.Scheduler.AspNetCore.Extensions
             serviceCollection.AddSingleton<IScheduler>(x => new Scheduler(x.GetRequiredService<ILogger<Scheduler>>()));
 
             // Add hosted service
-            serviceCollection.AddHostedService<SchedulerHostedService>();
+            serviceCollection.AddHostedService<HostedSchedulerService>();
         }
     }
 }

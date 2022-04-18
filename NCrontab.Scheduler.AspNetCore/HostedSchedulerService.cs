@@ -7,53 +7,53 @@ namespace NCrontab.Scheduler.AspNetCore
 {
     /// <summary>
     /// Hosts an <seealso cref="IScheduler"/> instance and automatically starts/stops
-    /// when this <seealso cref="SchedulerHostedService"/> is started/stopped.
+    /// when this <seealso cref="HostedSchedulerService"/> is started/stopped.
     /// Call <code>IServiceCollection.AddHostedService<SchedulerHostedService>()</code>
     /// to activate this hosted service.
     /// </summary>
-    public class SchedulerHostedService : IHostedService
+    public class HostedSchedulerService : IHostedService
     {
         private readonly IScheduler scheduler;
-        private readonly IEnumerable<IAsyncScheduledTask> scheduledTasks;
-        private readonly IEnumerable<IScheduledTask> scheduledActions;
+        private readonly IEnumerable<IScheduledTask> scheduledTasks;
+        private readonly IEnumerable<IAsyncScheduledTask> asyncScheduledTasks;
 
-        public SchedulerHostedService(
+        public HostedSchedulerService(
             IScheduler scheduler,
-            IEnumerable<IAsyncScheduledTask> scheduledTasks,
-            IEnumerable<IScheduledTask> scheduledActions)
+            IEnumerable<IScheduledTask> scheduledTasks,
+            IEnumerable<IAsyncScheduledTask> asyncScheduledTasks)
         {
             this.scheduler = scheduler;
             this.scheduledTasks = scheduledTasks;
-            this.scheduledActions = scheduledActions;
+            this.asyncScheduledTasks = asyncScheduledTasks;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             this.AddScheduledTasks();
-            this.AddScheduledActions();
+            this.AddAsyncScheduledTasks();
 
             this.scheduler.Start();
             return Task.CompletedTask;
         }
 
-        private void AddScheduledTasks()
+        private void AddAsyncScheduledTasks()
         {
-            if (this.scheduledTasks != null)
+            if (this.asyncScheduledTasks != null)
             {
-                foreach (var scheduledTask in this.scheduledTasks)
+                foreach (var scheduledTask in this.asyncScheduledTasks)
                 {
-                    this.scheduler.AddTask(scheduledTask.CrontabSchedule, (ct) => scheduledTask.RunAsync(ct));
+                    this.scheduler.AddTask(scheduledTask);
                 }
             }
         }
         
-        private void AddScheduledActions()
+        private void AddScheduledTasks()
         {
-            if (this.scheduledTasks != null)
+            if (this.asyncScheduledTasks != null)
             {
-                foreach (var scheduledAction in this.scheduledActions)
+                foreach (var scheduledTask in this.scheduledTasks)
                 {
-                    this.scheduler.AddTask(scheduledAction.CrontabSchedule, (ct) => scheduledAction.Run(ct));
+                    this.scheduler.AddTask(scheduledTask);
                 }
             }
         }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace NCrontab.Scheduler.Internals
+namespace NCrontab.Scheduler
 {
     public class ScheduledTask : IScheduledTask
     {

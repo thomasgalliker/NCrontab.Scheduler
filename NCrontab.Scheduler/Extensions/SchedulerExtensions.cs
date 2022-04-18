@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using NCrontab.Scheduler.Internals;
 
 namespace NCrontab.Scheduler
 {
+    /// <summary>
+    /// Convenience extension methods for <seealso cref="IScheduler"/>.
+    /// </summary>
     public static class SchedulerExtensions
     {
         /// <summary>
