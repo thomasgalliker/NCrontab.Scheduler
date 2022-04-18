@@ -13,6 +13,14 @@ Use the following command to install NCrontab.Scheduler using NuGet package mana
 
 You can use this library in any .NET Standard or .NET Core project.
 
+### ASP.NET Core Integration
+In ASP.NET Core projects, use following NuGet package: https://www.nuget.org/packages/NCrontab.Scheduler.AspNetCore
+Use the following command to install NCrontab.Scheduler.AspNetCore using NuGet package manager console:
+
+    PM> Install-Package NCrontab.Scheduler.AspNetCore
+
+You can use this library in any ASP.NET Core project which is compatible to .NET Core 3.1 and higher.
+
 ### API Usage
 #### Creating a Scheduler
 `Scheduler` implements the main scheduler operations.
