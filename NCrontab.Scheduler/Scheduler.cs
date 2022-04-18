@@ -53,49 +53,21 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
-        public void AddTask(Guid id, string cronExpression, Func<CancellationToken, Task> func)
+        public void AddTask(Guid taskId, CrontabSchedule cronExpression, Func<CancellationToken, Task> action)
         {
-            this.AddTask(id, CrontabSchedule.Parse(cronExpression), func);
-        }
+            this.logger.LogDebug($"AddTask: id={taskId:B}, cronExpression={cronExpression}");
 
-        /// <inheritdoc/>
-        public void AddTask(Guid id, CrontabSchedule cronExpression, Func<CancellationToken, Task> func)
-        {
-            this.logger.LogDebug($"AddTask: id={id:B}, cronExpression={cronExpression}");
-
-            var scheduledTask = new ScheduledTaskInternal(id, cronExpression, func);
+            var scheduledTask = new ScheduledTaskInternal(taskId, cronExpression, action);
 
             this.AddTaskInternal(scheduledTask);
         }
 
         /// <inheritdoc/>
-        public Guid AddTask(string cronExpression, Func<CancellationToken, Task> func)
+        public void AddTask(Guid taskId, CrontabSchedule cronExpression, Action<CancellationToken> action)
         {
-            return this.AddTask(CrontabSchedule.Parse(cronExpression), func);
-        }
+            this.logger.LogDebug($"AddTask: id={taskId:B}, cronExpression={cronExpression}");
 
-        /// <inheritdoc/>
-        public Guid AddTask(CrontabSchedule cronExpression, Func<CancellationToken, Task> func)
-        {
-            var id = Guid.NewGuid();
-
-            this.AddTask(id, cronExpression, func);
-
-            return id;
-        }
-
-        /// <inheritdoc/>
-        public void AddTask(Guid id, string cronExpression, Action<CancellationToken> action)
-        {
-            this.AddTask(id, CrontabSchedule.Parse(cronExpression), action);
-        }
-
-        /// <inheritdoc/>
-        public void AddTask(Guid id, CrontabSchedule cronExpression, Action<CancellationToken> action)
-        {
-            this.logger.LogDebug($"AddTask: id={id:B}, cronExpression={cronExpression}");
-
-            var scheduledTask = new ScheduledTaskInternal(id, cronExpression, action);
+            var scheduledTask = new ScheduledTaskInternal(taskId, cronExpression, action);
 
             this.AddTaskInternal(scheduledTask);
         }
@@ -111,22 +83,6 @@ namespace NCrontab.Scheduler
                     this.ResetScheduler();
                 }
             }
-        }
-
-        /// <inheritdoc/>
-        public Guid AddTask(string cronExpression, Action<CancellationToken> action)
-        {
-            return this.AddTask(CrontabSchedule.Parse(cronExpression), action);
-        }
-
-        /// <inheritdoc/>
-        public Guid AddTask(CrontabSchedule cronExpression, Action<CancellationToken> action)
-        {
-            var id = Guid.NewGuid();
-
-            this.AddTask(id, cronExpression, action);
-
-            return id;
         }
 
         /// <inheritdoc/>
@@ -149,6 +105,7 @@ namespace NCrontab.Scheduler
             }
         }
 
+        /// <inheritdoc/>
         public void RemoveAllTasks()
         {
             this.logger.LogDebug($"RemoveAllTasks");
@@ -162,12 +119,6 @@ namespace NCrontab.Scheduler
                     this.ResetScheduler();
                 }
             }
-        }
-
-        /// <inheritdoc/>
-        public void Start(CancellationToken cancellationToken = default)
-        {
-            Task.Run(() => this.StartAsync(cancellationToken));
         }
 
         /// <inheritdoc/>
@@ -209,7 +160,7 @@ namespace NCrontab.Scheduler
                     {
                         this.logger.LogInformation(
                             $"Scheduler is waiting for tasks. " +
-                            $"Use {nameof(this.AddTask)} methods to add tasks.");
+                            $"Use {nameof(IScheduler.AddTask)} methods to add tasks.");
                     }
                     else
                     {
