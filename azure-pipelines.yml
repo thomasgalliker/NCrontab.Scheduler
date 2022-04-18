@@ -108,6 +108,14 @@ steps:
     packagesToPack: NCrontab.Scheduler/NCrontab.Scheduler.csproj
     versioningScheme: byEnvVar
     versionEnvVar: semVersion
+      
+- task: DotNetCoreCLI@2
+  displayName: 'Pack NCrontab.Scheduler.AspNetCore'
+  inputs:
+    command: pack
+    packagesToPack: NCrontab.Scheduler.AspNetCore/NCrontab.Scheduler.AspNetCore.csproj
+    versioningScheme: byEnvVar
+    versionEnvVar: semVersion
     
 - task: CopyFiles@2
   displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'

@@ -7,42 +7,32 @@ namespace NCrontab.Scheduler
 {
     public interface IScheduler : IDisposable
     {
-        void ChangeScheduleAndResetScheduler(Guid id, CrontabSchedule cronExpression);
+        void ChangeScheduleAndResetScheduler(Guid taskId, CrontabSchedule cronExpression);
 
-        void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid Id, CrontabSchedule CrontabSchedule)> scheduleChanges);
-
-        /// <summary>
-        /// Starts the scheduling operations.
-        /// This is a non-blocking call.
-        /// </summary>
-        /// <param name="cancellationToken"></param>
-        void Start(CancellationToken cancellationToken = default);
+        void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid TaskId, CrontabSchedule CrontabSchedule)> scheduleChanges);
 
         /// <summary>
         /// Starts the scheduling operations.
         /// This call blocks the further execution.
         /// </summary>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         Task StartAsync(CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Indicates if the scheduler is running.
+        /// </summary>
         bool IsRunning { get; }
 
-        Guid AddTask(string cronExpression, Action<CancellationToken> action);
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
+        /// <param name="scheduledTask">The scheduled task (synchronous action).</param>
+        void AddTask(IScheduledTask scheduledTask);
 
-        Guid AddTask(CrontabSchedule cronExpression, Action<CancellationToken> action);
-
-        void AddTask(Guid id, string cronExpression, Action<CancellationToken> action);
-
-        void AddTask(Guid id, CrontabSchedule cronExpression, Action<CancellationToken> action);
-
-        Guid AddTask(string cronExpression, Func<CancellationToken, Task> func);
-
-        Guid AddTask(CrontabSchedule cronExpression, Func<CancellationToken, Task> func);
-
-        void AddTask(Guid id, string cronExpression, Func<CancellationToken, Task> func);
-
-        void AddTask(Guid id, CrontabSchedule cronExpression, Func<CancellationToken, Task> func);
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
+        /// <param name="scheduledTask">The scheduled task (asynchronous action).</param>
+        void AddTask(IAsyncScheduledTask scheduledTask);
 
         /// <summary>
         /// Next event fires if the scheduler triggers the execution
@@ -50,7 +40,16 @@ namespace NCrontab.Scheduler
         /// </summary>
         event EventHandler<ScheduledEventArgs> Next;
 
+        /// <summary>
+        /// Removes the scheduled task with given <paramref name="taskId"/>.
+        /// </summary>
+        /// <param name="taskId">The task identifier.</param>
         void RemoveTask(Guid taskId);
+
+        /// <summary>
+        /// Removes all scheduled tasks.
+        /// </summary>
+        void RemoveAllTasks();
 
         /// <summary>
         /// All scheduling operations are aborted immediately.

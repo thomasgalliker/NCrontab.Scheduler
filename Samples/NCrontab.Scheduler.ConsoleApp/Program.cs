@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Globalization;
+using Microsoft.Extensions.Logging;
 
 namespace NCrontab.Scheduler.ConsoleApp
 {
@@ -13,11 +14,15 @@ namespace NCrontab.Scheduler.ConsoleApp
             Console.WriteLine(
                 $"Wait until the first task is scheduled for execution...{Environment.NewLine}");
 
+            var dateTimeFormat = CultureInfo.CurrentCulture.DateTimeFormat;
             using var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder
-                    .AddConsole()
-                    .AddDebug();
+                    .AddDebug()
+                    .AddSimpleConsole(c =>
+                    {
+                        c.TimestampFormat = $"{dateTimeFormat.ShortDatePattern} {dateTimeFormat.LongTimePattern} ";
+                    });
             });
 
             // Create instance of Scheduler with or without ILogger<Scheduler>
@@ -31,16 +36,24 @@ namespace NCrontab.Scheduler.ConsoleApp
 
             // Add tasks with different cron schedules and actions.
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("* * * * *"),
+                crontabSchedule: CrontabSchedule.Parse("* * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every minutes"); });
 
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("*/2 * * * *"),
-                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minutes"); });
+                crontabSchedule: CrontabSchedule.Parse("*/2 * * * *"),
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every second minute"); });
 
             scheduler.AddTask(
-                cronExpression: CrontabSchedule.Parse("*/3 * * * *"),
-                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every third minutes"); });
+                crontabSchedule: CrontabSchedule.Parse("0 * * * *"),
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every hour"); });
+
+            scheduler.AddTask(
+                crontabSchedule: CrontabSchedule.Parse("0 0 * * *"),
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every day at midnight"); });
+
+            scheduler.AddTask(
+                crontabSchedule: CrontabSchedule.Parse("0 0 1 1 *"),
+                action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs on Januar 1 every year"); });
 
             // Finally, start the scheduler and observe the action callbacks
             // as well as the Next event handler.
