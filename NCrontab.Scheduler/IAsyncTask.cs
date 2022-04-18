@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace NCrontab.Scheduler
@@ -9,12 +8,5 @@ namespace NCrontab.Scheduler
         string CronExpression { get; }
 
         Task RunAsync(CancellationToken cancellationToken);
-    }
-
-    public interface ITask
-    {
-        string CronExpression { get; }
-
-        void Run(CancellationToken cancellationToken);
     }
 }
