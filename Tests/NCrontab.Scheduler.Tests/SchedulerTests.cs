@@ -137,7 +137,7 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
-        public async Task ShouldAddTask_Concurrent()
+        public async Task ShouldAddTask_ConcurrentAddAndRemove()
         {
             // Arrange
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
@@ -171,6 +171,43 @@ namespace NCrontab.Scheduler.Tests
 
             // Assert
             recordedNextEvents.Count.Should().BeInRange(0, 2);
+        }
+        
+        [Fact]
+        public async Task ShouldRemoveAllTasks()
+        {
+            // Arrange
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.Setup(mock => mock.Now)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var recordedNextEvents = new List<ScheduledEventArgs>();
+            scheduler.Next += (sender, args) => { recordedNextEvents.Add(args); };
+
+            var numberOfTasks = 10;
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(1000))
+            {
+                var startTask = Task.Run(async () =>
+                {
+                    await scheduler.StartAsync(cancellationTokenSource.Token);
+                });
+
+                // Adding tasks concurrently
+                var taskIds = Enumerable.Range(0, numberOfTasks).Select(i => Guid.NewGuid()).ToList();
+                Parallel.ForEach(taskIds, id => scheduler.AddTask(id, "* * * * *", ct => { }));
+
+                // Removing all tasks at once
+                scheduler.RemoveAllTasks();
+
+                await startTask;
+            }
+
+            // Assert
+            recordedNextEvents.Count.Should().Be(0);
         }
 
         [Fact]
@@ -255,7 +292,7 @@ namespace NCrontab.Scheduler.Tests
             nextCount.Should().Be(1);
         }
 
-        [Fact(Skip = "to be fixed")]
+        [Fact]
         public async Task ScheduleJobThatWillTakeMoreThanAMinuteToRunAndLogWarning()
         {
             // Arrange
@@ -263,7 +300,7 @@ namespace NCrontab.Scheduler.Tests
             dateTimeMock.SetupSequence(mock => mock.Now)
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 58))
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
-                .Returns(new DateTime(2019, 11, 06, 14, 44, 01))
+                .Returns(new DateTime(2019, 11, 06, 14, 45, 01))
                 .Returns(new DateTime(2019, 11, 06, 14, 45, 02));
 
             var logger = new Mock<ILogger<Scheduler>>();
@@ -277,7 +314,7 @@ namespace NCrontab.Scheduler.Tests
             });
 
             // Act
-            using (var cancellationTokenSource = new CancellationTokenSource(2000))
+            using (var cancellationTokenSource = new CancellationTokenSource(2100))
             {
                 await scheduler.StartAsync(cancellationTokenSource.Token);
             }
@@ -285,12 +322,12 @@ namespace NCrontab.Scheduler.Tests
             // Assert
             logger.Verify(x => x.Log(LogLevel.Warning,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((o, t) => string.Equals("Execution took more than one minute", o.ToString(), StringComparison.InvariantCultureIgnoreCase)),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString().StartsWith("Execution finished after")),
                     It.IsAny<Exception>(),
                     (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()), Times.Once);
         }
 
-        [Fact(Skip = "to be fixed")]
+        [Fact]
         public async Task ScheduleJobThatShouldRunInNextMinuteButChangeThatBeforeThatSoNoExecutionHaveOccured()
         {
             // Arrange
@@ -302,7 +339,7 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var actionObject = new TestObject();
-            var id = scheduler.AddTask("44 14 * * * 2019", (cancellationToken) =>
+            var taskId = scheduler.AddTask("44 14 * * *", (cancellationToken) =>
             {
                 actionObject.Run();
             });
@@ -315,7 +352,7 @@ namespace NCrontab.Scheduler.Tests
                     await scheduler.StartAsync(cancellationTokenSource.Token);
                 });
 
-                scheduler.ChangeScheduleAndResetScheduler(id, CrontabSchedule.Parse("50 14 * * * 2019"));
+                scheduler.UpdateTask(taskId, CrontabSchedule.Parse("50 14 * * *"));
 
                 await task;
             }
@@ -324,7 +361,7 @@ namespace NCrontab.Scheduler.Tests
             actionObject.RunCount.Should().Be(0);
         }
 
-        [Fact(Skip = "to be fixed")]
+        [Fact]
         public async Task ScheduleJobThatShouldRunInNextMinuteButChangeThatBeforeThatSoNoExecutionHaveOccuredWithExternalId()
         {
             // Arrange
@@ -332,11 +369,12 @@ namespace NCrontab.Scheduler.Tests
             dateTimeMock.SetupSequence(mock => mock.Now)
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 58))
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var id = Guid.NewGuid();
             var actionObject = new TestObject();
-            scheduler.AddTask(id, "44 14 * * * 2019", (cancellationToken) =>
+            scheduler.AddTask(id, "44 14 * * *", (cancellationToken) =>
             {
                 actionObject.Run();
             });
@@ -349,7 +387,7 @@ namespace NCrontab.Scheduler.Tests
                     await scheduler.StartAsync(cancellationTokenSource.Token);
                 });
 
-                scheduler.ChangeScheduleAndResetScheduler(id, CrontabSchedule.Parse("50 14 * * * 2019"));
+                scheduler.UpdateTask(id, CrontabSchedule.Parse("50 14 * * *"));
 
                 await task;
             }
@@ -358,7 +396,7 @@ namespace NCrontab.Scheduler.Tests
             actionObject.RunCount.Should().Be(0);
         }
 
-        [Fact(Skip = "to be fixed")]
+        [Fact]
         public async Task ScheduleJobThatShouldRunInNextMinuteButStopSchedulerBeforeThatSoNoExecutionHaveOccured()
         {
             // Arrange
@@ -366,11 +404,12 @@ namespace NCrontab.Scheduler.Tests
             dateTimeMock.SetupSequence(mock => mock.Now)
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 58))
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var internalStopInvoked = false;
             var actionObject = new TestObject();
-            var id = scheduler.AddTask("44 14 * * * 2019", async (cancellationToken) =>
+            var id = scheduler.AddTask("44 14 * * *", async (cancellationToken) =>
             {
                 var continueExecutionAfterDelay = await Task.Delay(10000, cancellationToken).ContinueWith(task =>
                 {
@@ -415,7 +454,8 @@ namespace NCrontab.Scheduler.Tests
         {
             // Arrange
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
-            dateTimeMock.Setup(mock => mock.Now).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+            dateTimeMock.Setup(mock => mock.Now)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
 
             var logger = new Mock<ILogger<Scheduler>>();
 
@@ -440,6 +480,7 @@ namespace NCrontab.Scheduler.Tests
 
             // Arrange
             actionObject.RunCount.Should().Be(1);
+
             logger.Verify(x => x.Log(LogLevel.Error,
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Task with Id={failingTaskId:B} failed with exception")),
@@ -447,5 +488,46 @@ namespace NCrontab.Scheduler.Tests
                     (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()), Times.Once);
         }
 
+        [Fact]
+        public async Task ShouldStop_CancelsScheduledTasksAndStopsScheduler()
+        {
+            // Arrange
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.Setup(mock => mock.Now).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var scheduledTask = new AsyncScheduledTask(CrontabSchedule.Parse("* * * * *"), (c) => Task.CompletedTask);
+            scheduler.AddTask(scheduledTask);
+
+            scheduler.Start();
+            await Task.Delay(500);
+
+            // Act
+            scheduler.Stop();
+
+            // Arrange
+            scheduler.IsRunning.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task ShouldDispose_CancelsScheduledTasksAndStopsScheduler()
+        {
+            // Arrange
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.Setup(mock => mock.Now).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var scheduledTask = new AsyncScheduledTask(CrontabSchedule.Parse("* * * * *"), (c) => Task.CompletedTask);
+            scheduler.AddTask(scheduledTask);
+
+            scheduler.Start();
+            await Task.Delay(500);
+
+            // Act
+            scheduler.Dispose();
+
+            // Arrange
+            scheduler.IsRunning.Should().BeFalse();
+        }
     }
 }

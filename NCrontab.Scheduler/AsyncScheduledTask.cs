@@ -8,6 +8,11 @@ namespace NCrontab.Scheduler
     {
         private readonly Func<CancellationToken, Task> action;
 
+        public AsyncScheduledTask(CrontabSchedule cronExpression, Func<CancellationToken, Task> action)
+            : this(Guid.NewGuid(), cronExpression, action)
+        {
+        }
+
         public AsyncScheduledTask(Guid id, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
         {
             this.Id = id;
@@ -23,7 +28,5 @@ namespace NCrontab.Scheduler
         {
             return this.action(cancellationToken);
         }
-
-
     }
 }

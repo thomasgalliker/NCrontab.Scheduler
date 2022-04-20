@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -7,10 +6,6 @@ namespace NCrontab.Scheduler
 {
     public interface IScheduler : IDisposable
     {
-        void ChangeScheduleAndResetScheduler(Guid taskId, CrontabSchedule cronExpression);
-
-        void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid TaskId, CrontabSchedule CrontabSchedule)> scheduleChanges);
-
         /// <summary>
         /// Starts the scheduling operations.
         /// This call blocks the further execution.
@@ -35,6 +30,20 @@ namespace NCrontab.Scheduler
         void AddTask(IAsyncScheduledTask scheduledTask);
 
         /// <summary>
+        /// Returns the <seealso cref="ITask"/> for the given <paramref name="taskId"/>.
+        /// If the task cannot be found, null is returned.
+        /// </summary>
+        /// <param name="taskId">The task identifier.</param>
+        /// <returns><seealso cref="ITask"/> or null (if not found).</returns>
+        ITask GetTaskById(Guid taskId);
+
+        /// <summary>
+        /// Updates the schedule of the <paramref name="scheduledTask"/>.
+        /// </summary>
+        /// <param name="scheduledTask"></param>
+        void UpdateTask(ITask scheduledTask);
+
+        /// <summary>
         /// Next event fires if the scheduler triggers the execution
         /// of the next task in the pipeline.
         /// </summary>
@@ -44,7 +53,8 @@ namespace NCrontab.Scheduler
         /// Removes the scheduled task with given <paramref name="taskId"/>.
         /// </summary>
         /// <param name="taskId">The task identifier.</param>
-        void RemoveTask(Guid taskId);
+        /// <returns>True, if task with <paramref name="taskId"/> was found and removed.</returns>
+        bool RemoveTask(Guid taskId);
 
         /// <summary>
         /// Removes all scheduled tasks.
