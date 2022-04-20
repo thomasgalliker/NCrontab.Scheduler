@@ -85,7 +85,12 @@ The EDF algorithm will always schedule the task(s) whose deadline is soonest.
 The scheduler provides a dynamic prioritization of tasks by evaluating the cron expressions of the tasks.
 Each scheduling iteration attempts to find the task with the earliest possible execution date/time.
 
-If tasks are added or removed during while waiting for the next execution, the evaluation of the earliest possible execution date/time is re-evaluated.
+If tasks are added or removed while waiting for the next execution, the earliest possible execution date/time is re-evaluated.
+
+### Task Overrun Condition
+Task overrun conditions can happen if a scheduled task's execution time exceeds the limit of one minute.
+Task overrun can lead to situations where other tasks miss their projected next execution time.
+Consequently, each of other tasks start missing their deadlines one after the other in sequence (domino effect). This is a classic EDF scheduling problem and can lead to dangerous situations!
 
 ### Thread-Safety
 All scheduler operations are kept thread-safe. Adding and removing tasks as well as starting and stopping the scheduler can be done concurrently.
