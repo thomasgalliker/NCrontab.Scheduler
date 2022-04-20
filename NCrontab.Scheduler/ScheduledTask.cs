@@ -7,6 +7,11 @@ namespace NCrontab.Scheduler
     {
         private readonly Action<CancellationToken> action;
 
+        public ScheduledTask(CrontabSchedule cronExpression, Action<CancellationToken> action)
+            : this(Guid.NewGuid(), cronExpression, action)
+        {
+        }
+
         public ScheduledTask(Guid id, CrontabSchedule cronExpression, Action<CancellationToken> action)
         {
             this.Id = id;

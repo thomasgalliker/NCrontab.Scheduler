@@ -19,8 +19,6 @@ trigger:
 
   paths:
     exclude:
-    - README.md
-    - Images/*
     - Samples/*
 
 variables:

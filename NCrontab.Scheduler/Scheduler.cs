@@ -59,7 +59,7 @@ namespace NCrontab.Scheduler
 
             this.AddTaskInternal(scheduledTask);
         }
-        
+
         /// <inheritdoc/>
         public void AddTask(IAsyncScheduledTask scheduledTask)
         {
@@ -82,32 +82,71 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
-        public void RemoveTask(Guid taskId)
+        public ITask GetTaskById(Guid taskId)
+        {
+            lock (this.threadLock)
+            {
+                return this.scheduledTasks.SingleOrDefault(t => t.Id == taskId);
+            }
+        }
+
+        /// <inheritdoc/>
+        public void UpdateTask(ITask scheduledTask)
+        {
+            this.logger.LogDebug($"UpdateTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+
+            lock (this.threadLock)
+            {
+                var existingScheduledTask = this.scheduledTasks.SingleOrDefault(t => t.Id == scheduledTask.Id);
+                if (existingScheduledTask != null)
+                {
+                    existingScheduledTask.CrontabSchedule = scheduledTask.CrontabSchedule;
+                }
+                else
+                {
+                    this.scheduledTasks.Add(scheduledTask);
+                }
+
+                if (this.IsRunning)
+                {
+                    this.ResetScheduler();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public bool RemoveTask(Guid taskId)
         {
             this.logger.LogDebug($"RemoveTask: taskId={taskId:B}");
 
             lock (this.threadLock)
             {
-                var scheduledTask = this.scheduledTasks.SingleOrDefault(t => t.Id == taskId);
+                var scheduledTask = this.GetTaskById(taskId);
                 if (scheduledTask != null)
                 {
-                    this.scheduledTasks.Remove(scheduledTask);
+                    var removed = this.scheduledTasks.Remove(scheduledTask);
 
                     if (this.IsRunning)
                     {
                         this.ResetScheduler();
                     }
+
+                    return removed;
                 }
+
+                this.logger.LogWarning($"RemoveTask: Task with taskId={taskId:B} could not be found");
+
+                return false;
             }
         }
 
         /// <inheritdoc/>
         public void RemoveAllTasks()
         {
-            this.logger.LogDebug($"RemoveAllTasks");
-
             lock (this.threadLock)
             {
+                this.logger.LogDebug($"RemoveAllTasks: Count={this.scheduledTasks.Count}");
+
                 this.scheduledTasks.Clear();
 
                 if (this.IsRunning)
@@ -217,7 +256,7 @@ namespace NCrontab.Scheduler
                                 {
                                     scheduledTask.Run(this.localCancellationTokenSource.Token);
                                 }
-                                
+
                                 if (task is IAsyncScheduledTask asyncScheduledTask)
                                 {
                                     await asyncScheduledTask.RunAsync(this.localCancellationTokenSource.Token);
@@ -293,34 +332,6 @@ namespace NCrontab.Scheduler
             }
 
             return (lowestNextTimeToRun, lowestIds);
-        }
-
-        public void ChangeScheduleAndResetScheduler(Guid taskId, CrontabSchedule cronExpression)
-        {
-            this.ChangeSchedulesAndResetScheduler(new List<(Guid, CrontabSchedule)> { (taskId, cronExpression) });
-        }
-
-        public void ChangeSchedulesAndResetScheduler(IEnumerable<(Guid TaskId, CrontabSchedule CrontabSchedule)> scheduleChanges)
-        {
-            var hasChange = false;
-            lock (this.threadLock)
-            {
-                foreach (var scheduleItem in scheduleChanges)
-                {
-                    this.scheduledTasks.Single(t => t.Id == scheduleItem.TaskId).CrontabSchedule = scheduleItem.CrontabSchedule;
-                    var existingScheduledTask = this.scheduledTasks.SingleOrDefault(t => t.Id == scheduleItem.TaskId);
-                    if (existingScheduledTask != null)
-                    {
-                        existingScheduledTask.CrontabSchedule = scheduleItem.CrontabSchedule;
-                        hasChange = true;
-                    }
-                }
-            }
-
-            if (this.IsRunning && hasChange)
-            {
-                this.ResetScheduler();
-            }
         }
 
         private void ResetScheduler()
