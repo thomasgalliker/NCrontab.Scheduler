@@ -118,13 +118,6 @@ namespace NCrontab.Scheduler
         {
             var asyncScheduledTask = new AsyncScheduledTask(taskId, crontabSchedule, action);
             scheduler.AddTask(asyncScheduledTask);
-        } 
-        
-        public static void UpdateTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule)
-        {
-            var scheduledTask = scheduler.GetTaskById(taskId);
-            scheduledTask.CrontabSchedule = crontabSchedule;
-            scheduler.UpdateTask(scheduledTask);
         }
     }
 }

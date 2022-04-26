@@ -91,20 +91,35 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
+        public IEnumerable<ITask> GetTasks()
+        {
+            lock (this.threadLock)
+            {
+                return this.scheduledTasks.ToList();
+            }
+        }
+
+        /// <inheritdoc/>
         public void UpdateTask(ITask scheduledTask)
         {
-            this.logger.LogDebug($"UpdateTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+            this.UpdateTask(scheduledTask.Id, scheduledTask.CrontabSchedule);
+        }
+
+        /// <inheritdoc/>
+        public void UpdateTask(Guid taskId, CrontabSchedule crontabSchedule)
+        {
+            this.logger.LogDebug($"UpdateTask: taskId={taskId:B}, crontabSchedule={crontabSchedule}");
 
             lock (this.threadLock)
             {
-                var existingScheduledTask = this.scheduledTasks.SingleOrDefault(t => t.Id == scheduledTask.Id);
-                if (existingScheduledTask != null)
+                var existingScheduledTask = this.GetTaskById(taskId);
+                if (existingScheduledTask == null)
                 {
-                    existingScheduledTask.CrontabSchedule = scheduledTask.CrontabSchedule;
+                    throw new InvalidOperationException($"UpdateTask: task with Id={taskId} could not be found.");
                 }
                 else
                 {
-                    this.scheduledTasks.Add(scheduledTask);
+                    existingScheduledTask.CrontabSchedule = crontabSchedule;
                 }
 
                 if (this.IsRunning)
@@ -121,10 +136,10 @@ namespace NCrontab.Scheduler
 
             lock (this.threadLock)
             {
-                var scheduledTask = this.GetTaskById(taskId);
-                if (scheduledTask != null)
+                var existingScheduledTask = this.GetTaskById(taskId);
+                if (existingScheduledTask != null)
                 {
-                    var removed = this.scheduledTasks.Remove(scheduledTask);
+                    var removed = this.scheduledTasks.Remove(existingScheduledTask);
 
                     if (this.IsRunning)
                     {

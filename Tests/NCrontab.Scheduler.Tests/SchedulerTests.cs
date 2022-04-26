@@ -172,7 +172,32 @@ namespace NCrontab.Scheduler.Tests
             // Assert
             recordedNextEvents.Count.Should().BeInRange(0, 2);
         }
-        
+
+        [Fact]
+        public void ShouldGetTasks()
+        {
+            // Arrange
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.Setup(mock => mock.Now).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
+            var taskId2 = scheduler.AddTask("*/2 * * * *", (cancellationToken) => { });
+            var taskId3 = scheduler.AddTask("*/3 * * * *", (cancellationToken) => { });
+
+            // Act
+            var tasks = scheduler.GetTasks().ToList();
+            var task1 = scheduler.GetTaskById(taskId1);
+            var task2 = scheduler.GetTaskById(taskId1);
+            var task3 = scheduler.GetTaskById(taskId1);
+
+            // Arrange
+            tasks.Should().HaveCount(3);
+            tasks.Should().Contain(t => t.Id == task1.Id);
+            tasks.Should().Contain(t => t.Id == task2.Id);
+            tasks.Should().Contain(t => t.Id == task3.Id);
+        }
+
         [Fact]
         public async Task ShouldRemoveAllTasks()
         {
