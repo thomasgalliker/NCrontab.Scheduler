@@ -283,7 +283,7 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
-        public async Task ShouldStopSchedulingIfTaskIsRemoved()
+        public async Task ShouldRemoveTask()
         {
             // Arrange
             var nextCount = 0;
@@ -546,7 +546,7 @@ namespace NCrontab.Scheduler.Tests
             scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
 
             // Act
-            using (var cancellationTokenSource = new CancellationTokenSource(21000))
+            using (var cancellationTokenSource = new CancellationTokenSource(2100))
             {
                 scheduler.Start();
                 await Task.Delay(500);
@@ -557,10 +557,13 @@ namespace NCrontab.Scheduler.Tests
 
             // Arrange
             scheduler.IsRunning.Should().BeFalse();
+
+            var tasks = scheduler.GetTasks();
+            tasks.Should().HaveCount(1);
         }
 
         [Fact]
-        public async Task ShouldDispose_CancelsScheduledTasksAndStopsScheduler()
+        public async Task ShouldDispose_CancelsAndRemovesScheduledTasksAndStopsScheduler()
         {
             // Arrange
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
