@@ -405,9 +405,13 @@ namespace NCrontab.Scheduler
             {
                 if (disposing)
                 {
-                    if (this.IsRunning)
+                    lock (this.threadLock)
                     {
-                        this.Stop();
+                        this.scheduledTasks.Clear();
+                        if (this.IsRunning)
+                        {
+                            this.Stop();
+                        }
                     }
                 }
 

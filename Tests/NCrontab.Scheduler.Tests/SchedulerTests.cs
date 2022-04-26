@@ -518,17 +518,42 @@ namespace NCrontab.Scheduler.Tests
         {
             // Arrange
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
-            dateTimeMock.Setup(mock => mock.Now).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
-            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+            dateTimeMock.Setup(mock => mock.Now)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
 
-            var scheduledTask = new AsyncScheduledTask(CrontabSchedule.Parse("* * * * *"), (c) => Task.CompletedTask);
-            scheduler.AddTask(scheduledTask);
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+            scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
 
             scheduler.Start();
             await Task.Delay(500);
 
             // Act
             scheduler.Stop();
+
+            // Arrange
+            scheduler.IsRunning.Should().BeFalse();
+        }
+        
+        [Fact]
+        public async Task ShouldStopAndRestart()
+        {
+            // Arrange
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.Setup(mock => mock.Now)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+            scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(21000))
+            {
+                scheduler.Start();
+                await Task.Delay(500);
+                scheduler.Stop();
+                await Task.Delay(500);
+                await scheduler.StartAsync(cancellationTokenSource.Token);
+            }
 
             // Arrange
             scheduler.IsRunning.Should().BeFalse();
@@ -541,9 +566,7 @@ namespace NCrontab.Scheduler.Tests
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
             dateTimeMock.Setup(mock => mock.Now).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-
-            var scheduledTask = new AsyncScheduledTask(CrontabSchedule.Parse("* * * * *"), (c) => Task.CompletedTask);
-            scheduler.AddTask(scheduledTask);
+            scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
 
             scheduler.Start();
             await Task.Delay(500);
@@ -553,6 +576,9 @@ namespace NCrontab.Scheduler.Tests
 
             // Arrange
             scheduler.IsRunning.Should().BeFalse();
+            
+            var tasks = scheduler.GetTasks();
+            tasks.Should().BeEmpty();
         }
     }
 }
