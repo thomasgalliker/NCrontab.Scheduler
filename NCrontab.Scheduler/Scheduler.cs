@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using NCrontab.Scheduler.Extensions;
 using NCrontab.Scheduler.Internals;
 
 namespace NCrontab.Scheduler
@@ -12,7 +13,8 @@ namespace NCrontab.Scheduler
     /// <inheritdoc/>
     public class Scheduler : IScheduler
     {
-        private static readonly Lazy<IScheduler> Implementation = new Lazy<IScheduler>(CreateScheduler, LazyThreadSafetyMode.PublicationOnly);
+        private static readonly Lazy<IScheduler> Implementation =
+            new Lazy<IScheduler>(CreateScheduler, LazyThreadSafetyMode.PublicationOnly);
 
         public static IScheduler Current => Implementation.Value;
 
@@ -21,7 +23,8 @@ namespace NCrontab.Scheduler
             return new Scheduler();
         }
 
-        private static readonly TimeSpan DurationWarningThresold = new TimeSpan(0, 1, 0);
+        private static readonly TimeSpan MaxDelayRounding = TimeSpan.FromMilliseconds(200);
+        private static readonly TimeSpan DurationWarningThreshold = TimeSpan.FromMinutes(1);
         private readonly object threadLock = new object();
 
         private readonly List<ITask> scheduledTasks = new List<ITask>();
@@ -32,18 +35,28 @@ namespace NCrontab.Scheduler
         private bool isRunning;
         private bool disposed;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Scheduler"/> class.
+        /// </summary>
         public Scheduler()
-            : this(new NullLogger<Scheduler>(), new SystemDateTime())
+            : this(new NullLogger<Scheduler>())
         {
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Scheduler"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
         public Scheduler(ILogger<Scheduler> logger)
             : this(logger, new SystemDateTime())
         {
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Scheduler"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="dateTime">The datetime provider.</param>
         internal Scheduler(
             ILogger<Scheduler> logger,
             IDateTime dateTime)
@@ -55,7 +68,8 @@ namespace NCrontab.Scheduler
         /// <inheritdoc/>
         public void AddTask(IScheduledTask scheduledTask)
         {
-            this.logger.LogDebug($"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+            this.logger.LogDebug(
+                $"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
 
             this.AddTaskInternal(scheduledTask);
         }
@@ -63,7 +77,8 @@ namespace NCrontab.Scheduler
         /// <inheritdoc/>
         public void AddTask(IAsyncScheduledTask scheduledTask)
         {
-            this.logger.LogDebug($"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+            this.logger.LogDebug(
+                $"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
 
             this.AddTaskInternal(scheduledTask);
         }
@@ -171,6 +186,12 @@ namespace NCrontab.Scheduler
             }
         }
 
+        /*
+         * This method depends on the system clock.
+         * This means that the time delay will approximately equal the resolution of the system clock
+         * if the millisecondsDelay argument is less than the resolution of the system clock,
+         * which is approximately 15 milliseconds on Windows systems.
+         */
         /// <inheritdoc/>
         public async Task StartAsync(CancellationToken cancellationToken = default)
         {
@@ -178,11 +199,11 @@ namespace NCrontab.Scheduler
             {
                 if (this.IsRunning)
                 {
-                    throw new InvalidOperationException($"Scheduler is already running");
+                    throw new InvalidOperationException("Scheduler is already running");
                 }
 
                 this.externalCancellationToken = cancellationToken;
-                this.RegisterLocalCancelationToken();
+                this.RegisterLocalCancellationToken();
 
                 this.IsRunning = true;
             }
@@ -191,43 +212,39 @@ namespace NCrontab.Scheduler
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var now = this.dateTime.Now;
+                    if (!this.IsRunning)
+                    {
+                        return;
+                    }
+
+                    var now = this.dateTime.UtcNow;
                     var (nextOccurrence, taskIds) = this.GetScheduledTasksToRunAndHowLongToWait(now);
 
                     TimeSpan timeToWait;
-
                     if (taskIds.Count == 0)
                     {
-                        timeToWait = TimeSpan.MaxValue;
-                    }
-                    else
-                    {
-                        timeToWait = nextOccurrence.Subtract(now);
-                    }
-
-                    var millisecondsDelay = (int)Math.Min(timeToWait.TotalMilliseconds, int.MaxValue);
-                    if (millisecondsDelay == int.MaxValue)
-                    {
+                        timeToWait = TaskHelper.InfiniteTimeSpan;
                         this.logger.LogInformation(
                             $"Scheduler is waiting for tasks. " +
                             $"Use {nameof(IScheduler.AddTask)} methods to add tasks.");
                     }
                     else
                     {
+                        timeToWait = nextOccurrence.Subtract(now).RoundUp(MaxDelayRounding);
+
                         this.logger.LogInformation(
                             $"Scheduling next event:{Environment.NewLine}" +
                             $" --> nextOccurrence: {nextOccurrence:O}{Environment.NewLine}" +
-                            $" --> millisecondsDelay: {millisecondsDelay} ({timeToWait}){Environment.NewLine}" +
+                            $" --> timeToWait: {timeToWait}{Environment.NewLine}" +
                             $" --> taskIds ({taskIds.Count}): {string.Join(", ", taskIds.Select(id => $"{id:B}"))}");
                     }
 
-                    var isCancellationRequested = await Task.Delay(millisecondsDelay, this.localCancellationTokenSource.Token)
-                        .ContinueWith(ct =>
+                    var isCancellationRequested = await TaskHelper.LongDelay(this.dateTime, timeToWait, this.localCancellationTokenSource.Token)
+                        .ContinueWith(_ =>
                         {
                             var userCanceled = cancellationToken.IsCancellationRequested;
-                            var tokenCanceled = ct.Status == TaskStatus.Canceled;
-                            return userCanceled /*|| tokenCanceled*/;
-                        });
+                            return userCanceled;
+                        }, CancellationToken.None);
 
                     if (!this.IsRunning)
                     {
@@ -248,12 +265,14 @@ namespace NCrontab.Scheduler
 
                     if (scheduledTasksToRun.Length > 0)
                     {
-                        var startTime = this.dateTime.Now;
-                        this.logger.LogDebug($"Starting scheduled event{Environment.NewLine}" +
-                            $" --> startTime: {startTime:O}{Environment.NewLine}" +
+                        var signalTime = this.dateTime.UtcNow;
+                        var timingInaccuracy = signalTime - nextOccurrence;
+                        this.logger.LogInformation(
+                            $"Starting scheduled event:{Environment.NewLine}" +
+                            $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
                             $" --> scheduledTasksToRun ({scheduledTasksToRun.Length}): {string.Join(", ", scheduledTasksToRun.Select(t => $"{t.Id:B}"))}");
 
-                        this.RaiseNextEvent(startTime, scheduledTasksToRun);
+                        this.RaiseNextEvent(signalTime, scheduledTasksToRun);
 
                         foreach (var task in scheduledTasksToRun)
                         {
@@ -283,10 +302,10 @@ namespace NCrontab.Scheduler
                             }
                         }
 
-                        var endTime = this.dateTime.Now;
-                        var duration = endTime - startTime;
+                        var endTime = this.dateTime.UtcNow;
+                        var duration = endTime - signalTime;
                         this.logger.Log(
-                            duration > DurationWarningThresold ? LogLevel.Warning : LogLevel.Debug,
+                            duration >= DurationWarningThreshold ? LogLevel.Warning : LogLevel.Debug,
                             $"Execution finished after {duration}");
                     }
                 }
@@ -305,15 +324,7 @@ namespace NCrontab.Scheduler
                 if (this.isRunning != value)
                 {
                     this.isRunning = value;
-
-                    if (value)
-                    {
-                        this.logger.LogDebug("Started");
-                    }
-                    else
-                    {
-                        this.logger.LogDebug("Stopped");
-                    }
+                    this.logger.LogDebug(value ? "Started" : "Stopped");
                 }
             }
         }
@@ -355,11 +366,11 @@ namespace NCrontab.Scheduler
             {
                 this.localCancellationTokenSource.Cancel();
 
-                this.RegisterLocalCancelationToken();
+                this.RegisterLocalCancellationToken();
             }
         }
 
-        private void RegisterLocalCancelationToken()
+        private void RegisterLocalCancellationToken()
         {
             lock (this.threadLock)
             {
@@ -370,17 +381,16 @@ namespace NCrontab.Scheduler
 
         public event EventHandler<ScheduledEventArgs> Next;
 
-        private void RaiseNextEvent(DateTime signalTime, params ITask[] scheduledTasks)
+        private void RaiseNextEvent(DateTime signalTime, params ITask[] tasks)
         {
             try
             {
-                Next?.Invoke(this, new ScheduledEventArgs(signalTime, scheduledTasks.Select(t => t.Id).ToArray()));
+                this.Next?.Invoke(this, new ScheduledEventArgs(signalTime, tasks.Select(t => t.Id).ToArray()));
             }
             catch (Exception e)
             {
                 this.logger.LogError(e, "RaiseNextEvent failed with exception");
             }
-
         }
 
         public void Stop()
