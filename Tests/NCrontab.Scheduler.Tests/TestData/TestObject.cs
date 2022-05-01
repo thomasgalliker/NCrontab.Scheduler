@@ -6,8 +6,6 @@ namespace NCrontab.Scheduler.Tests.TestData
     {
         public int RunCount { get; private set; }
 
-        public string CronExpression { get; set; }
-
         public void Run()
         {
             this.RunCount++;

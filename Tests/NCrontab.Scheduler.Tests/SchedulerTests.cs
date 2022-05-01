@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -18,10 +19,12 @@ namespace NCrontab.Scheduler.Tests
 {
     public class SchedulerTests
     {
+        private readonly ITestOutputHelper testOutputHelper;
         private readonly AutoMocker autoMocker;
 
         public SchedulerTests(ITestOutputHelper testOutputHelper)
         {
+            this.testOutputHelper = testOutputHelper;
             this.autoMocker = new AutoMocker();
             this.autoMocker.Use<ILogger<Scheduler>>(new TestOutputHelperLogger<Scheduler>(testOutputHelper));
         }
@@ -256,7 +259,7 @@ namespace NCrontab.Scheduler.Tests
             dateTimeMock.SetupSequence(d => d.Now, referenceDate, (n) => clockQueue.GetNext());
 
             var tcs = new TaskCompletionSource();
-            var recordedNextEvents = new List<ScheduledEventArgs>();
+            var recordedNextEvents = new ConcurrentBag<ScheduledEventArgs>();
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
             scheduler.Next += (s, e) => { recordedNextEvents.Add(e); if (recordedNextEvents.Count == 2) { tcs.SetResult(); } };
@@ -272,12 +275,15 @@ namespace NCrontab.Scheduler.Tests
             {
                 scheduler.Start(cancellationTokenSource.Token);
                 await tcs.Task;
+                scheduler.Stop();
             }
 
             // Arrange
+            this.testOutputHelper.WriteLine($"{ObjectDumper.Dump(recordedNextEvents, DumpStyle.CSharp)}");
+            
             recordedNextEvents.Should().HaveCount(2);
-            recordedNextEvents[0].SignalTime.Should().Be(new DateTime(2000, 1, 1, 23, 00, 00));
-            recordedNextEvents[1].SignalTime.Should().Be(new DateTime(2000, 1, 2, 00, 00, 00));
+            recordedNextEvents.Should().ContainSingle(e => e.SignalTime == new DateTime(2000, 1, 1, 23, 00, 00) && e.TaskIds.Length == 1);
+            recordedNextEvents.Should().ContainSingle(e => e.SignalTime == new DateTime(2000, 1, 2, 00, 00, 00) && e.TaskIds.Length == 2);
             testObjectHourly.RunCount.Should().Be(2);
             testObjectDaily.RunCount.Should().Be(1);
         }

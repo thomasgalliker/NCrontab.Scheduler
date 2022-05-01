@@ -11,9 +11,6 @@ namespace NCrontab.Scheduler.ConsoleApp
                 $"Scheduler ConsoleApp version {typeof(Program).Assembly.GetName().Version} {Environment.NewLine}" +
                 $"Copyright(C) superdev GmbH. All rights reserved.{Environment.NewLine}");
 
-            Console.WriteLine(
-                $"Wait until the first task is scheduled for execution...{Environment.NewLine}");
-
             var dateTimeFormat = CultureInfo.CurrentCulture.DateTimeFormat;
             using var loggerFactory = LoggerFactory.Create(builder =>
             {
@@ -22,7 +19,11 @@ namespace NCrontab.Scheduler.ConsoleApp
                     .AddSimpleConsole(c =>
                     {
                         c.TimestampFormat = $"{dateTimeFormat.ShortDatePattern} {dateTimeFormat.LongTimePattern} ";
-                    });
+                    })
+
+                    // Set the default log level to LogLevel.Debug
+                    // in order to get more detailed information from Scheduler
+                    .SetMinimumLevel(LogLevel.Debug);
             });
 
             // Create instance of Scheduler with or without ILogger<Scheduler>
@@ -64,7 +65,8 @@ namespace NCrontab.Scheduler.ConsoleApp
 
         private static void OnSchedulerNext(object? sender, ScheduledEventArgs e)
         {
-            Console.WriteLine($"{DateTime.Now:O} -> OnSchedulerNext with TaskIds={string.Join(", ", e.TaskIds.Select(i => $"{i:B}"))}");
+            Console.WriteLine(
+                $"{DateTime.Now:O} -> OnSchedulerNext with TaskIds={string.Join(", ", e.TaskIds.Select(i => $"{i:B}"))}");
         }
     }
 }
