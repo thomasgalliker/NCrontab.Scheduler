@@ -23,7 +23,6 @@ namespace NCrontab.Scheduler
             return new Scheduler();
         }
 
-        private static readonly TimeSpan InfiniteTimeSpan = TimeSpan.FromMilliseconds(-1);
         private static readonly TimeSpan MaxDelayRounding = TimeSpan.FromMilliseconds(200);
         private static readonly TimeSpan DurationWarningThreshold = TimeSpan.FromMinutes(1);
         private readonly object threadLock = new object();
@@ -217,21 +216,21 @@ namespace NCrontab.Scheduler
                     {
                         return;
                     }
-                    
-                    var now = this.dateTime.Now;
+
+                    var now = this.dateTime.UtcNow;
                     var (nextOccurrence, taskIds) = this.GetScheduledTasksToRunAndHowLongToWait(now);
 
                     TimeSpan timeToWait;
                     if (taskIds.Count == 0)
                     {
-                        timeToWait = InfiniteTimeSpan;
+                        timeToWait = TaskHelper.InfiniteTimeSpan;
                         this.logger.LogInformation(
                             $"Scheduler is waiting for tasks. " +
                             $"Use {nameof(IScheduler.AddTask)} methods to add tasks.");
                     }
                     else
                     {
-                        timeToWait = nextOccurrence .Subtract(now).RoundUp(MaxDelayRounding);
+                        timeToWait = nextOccurrence.Subtract(now).RoundUp(MaxDelayRounding);
 
                         this.logger.LogInformation(
                             $"Scheduling next event:{Environment.NewLine}" +
@@ -240,7 +239,7 @@ namespace NCrontab.Scheduler
                             $" --> taskIds ({taskIds.Count}): {string.Join(", ", taskIds.Select(id => $"{id:B}"))}");
                     }
 
-                    var isCancellationRequested = await Task.Delay(timeToWait, this.localCancellationTokenSource.Token)
+                    var isCancellationRequested = await TaskHelper.LongDelay(this.dateTime, timeToWait, this.localCancellationTokenSource.Token)
                         .ContinueWith(_ =>
                         {
                             var userCanceled = cancellationToken.IsCancellationRequested;
@@ -266,14 +265,14 @@ namespace NCrontab.Scheduler
 
                     if (scheduledTasksToRun.Length > 0)
                     {
-                        var startTime = this.dateTime.Now;
-                        var timingInaccuracy = startTime - nextOccurrence;
+                        var signalTime = this.dateTime.UtcNow;
+                        var timingInaccuracy = signalTime - nextOccurrence;
                         this.logger.LogInformation(
                             $"Starting scheduled event:{Environment.NewLine}" +
-                            $" --> startTime: {startTime:O} ({timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
+                            $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
                             $" --> scheduledTasksToRun ({scheduledTasksToRun.Length}): {string.Join(", ", scheduledTasksToRun.Select(t => $"{t.Id:B}"))}");
 
-                        this.RaiseNextEvent(startTime, scheduledTasksToRun);
+                        this.RaiseNextEvent(signalTime, scheduledTasksToRun);
 
                         foreach (var task in scheduledTasksToRun)
                         {
@@ -303,10 +302,10 @@ namespace NCrontab.Scheduler
                             }
                         }
 
-                        var endTime = this.dateTime.Now;
-                        var duration = endTime - startTime;
+                        var endTime = this.dateTime.UtcNow;
+                        var duration = endTime - signalTime;
                         this.logger.Log(
-                            duration > DurationWarningThreshold ? LogLevel.Warning : LogLevel.Debug,
+                            duration >= DurationWarningThreshold ? LogLevel.Warning : LogLevel.Debug,
                             $"Execution finished after {duration}");
                     }
                 }

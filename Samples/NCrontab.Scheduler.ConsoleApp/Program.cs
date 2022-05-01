@@ -35,7 +35,7 @@ namespace NCrontab.Scheduler.ConsoleApp
             // for all tasks that are executed.
             scheduler.Next += OnSchedulerNext;
 
-            // Add tasks with different cron schedules and actions.
+            // Add tasks with different cron schedules and actions. 
             scheduler.AddTask(
                 crontabSchedule: CrontabSchedule.Parse("* * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every minutes"); });
