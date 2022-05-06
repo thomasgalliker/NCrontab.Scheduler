@@ -38,8 +38,11 @@ namespace NCrontab.Scheduler
         /// <returns><seealso cref="ITask"/> or null (if not found).</returns>
         ITask GetTaskById(Guid taskId);
 
+        /// <summary>
+        /// Returns all tasks.
+        /// </summary>
         IEnumerable<ITask> GetTasks();
-
+        
         /// <summary>
         /// Updates the schedule of the <paramref name="scheduledTask"/>.
         /// </summary>

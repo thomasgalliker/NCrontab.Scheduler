@@ -187,7 +187,9 @@ namespace NCrontab.Scheduler.Tests
         {
             // Arrange
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
-            dateTimeMock.Setup(d => d.UtcNow).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+            dateTimeMock.Setup(d => d.UtcNow)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
@@ -205,6 +207,50 @@ namespace NCrontab.Scheduler.Tests
             tasks.Should().Contain(t => t.Id == task1.Id);
             tasks.Should().Contain(t => t.Id == task2.Id);
             tasks.Should().Contain(t => t.Id == task3.Id);
+        }
+        
+        [Fact]
+        public void ShouldGetNextOccurrences_WithStartDate()
+        {
+            // Arrange
+            var startDate = new DateTime(2000, 1, 1, 0, 0, 0);
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
+            var taskId2 = scheduler.AddTask("*/2 * * * *", (cancellationToken) => { });
+            var taskId3 = scheduler.AddTask("*/3 * * * *", (cancellationToken) => { });
+
+            // Act
+            var nexts = scheduler.GetNextOccurrences(startDate).ToList();
+
+            // Arrange
+            nexts.Should().HaveCount(3);
+        }
+        
+        [Fact]
+        public void ShouldGetNextOccurrences_WithStartDateAndEndDate()
+        {
+            // Arrange
+            var startDate = new DateTime(2000, 1, 1, 0, 0, 0);
+            var endDate = startDate.AddHours(1);
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
+            var taskId2 = scheduler.AddTask("*/2 * * * *", (cancellationToken) => { });
+            var taskId3 = scheduler.AddTask("*/3 * * * *", (cancellationToken) => { });
+
+            // Act
+            var nexts = scheduler.GetNextOccurrences(startDate, endDate).ToList();
+
+            // Arrange
+            nexts.Should().HaveCount(59);
+            nexts.Where(n => n.ScheduledTasks.Count() == 0).Should().HaveCount(0);
+            nexts.Where(n => n.ScheduledTasks.Count() == 1).Should().HaveCount(20);
+            nexts.Where(n => n.ScheduledTasks.Count() == 2).Should().HaveCount(30);
+            nexts.Where(n => n.ScheduledTasks.Count() == 3).Should().HaveCount(9);
+            nexts.Where(n => n.ScheduledTasks.Count() > 3).Should().HaveCount(0);
         }
 
         [Fact]
@@ -584,7 +630,9 @@ namespace NCrontab.Scheduler.Tests
         {
             // Arrange
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
-            dateTimeMock.Setup(d => d.UtcNow).Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+            dateTimeMock.Setup(d => d.UtcNow)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
             scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
 
