@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,10 +39,23 @@ namespace NCrontab.Scheduler
         ITask GetTaskById(Guid taskId);
 
         /// <summary>
+        /// Returns all tasks.
+        /// </summary>
+        IEnumerable<ITask> GetTasks();
+        
+        /// <summary>
         /// Updates the schedule of the <paramref name="scheduledTask"/>.
         /// </summary>
-        /// <param name="scheduledTask"></param>
+        /// <param name="scheduledTask">The scheduled task which has to be updated.</param>
+        /// <exception cref="InvalidOperationException">Throws exception if <paramref name="scheduledTask"/> does not exist.</exception>
         void UpdateTask(ITask scheduledTask);
+
+        /// <summary>
+        /// Updates the <paramref name="crontabSchedule"/> of the scheduled task with identifier <paramref name="taskId"/>.
+        /// </summary>
+        /// <param name="taskId">The task identifier.</param>
+        /// <exception cref="InvalidOperationException">Throws exception if task with identifier <paramref name="taskId"/> does not exist.</exception>
+        void UpdateTask(Guid taskId, CrontabSchedule crontabSchedule);
 
         /// <summary>
         /// Next event fires if the scheduler triggers the execution

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -118,13 +120,46 @@ namespace NCrontab.Scheduler
         {
             var asyncScheduledTask = new AsyncScheduledTask(taskId, crontabSchedule, action);
             scheduler.AddTask(asyncScheduledTask);
-        } 
-        
-        public static void UpdateTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule)
+        }
+
+        /// <summary>
+        /// Returns the planned next execution dates and tasks.
+        /// </summary>
+        /// <param name="startDate">The start date (optional).</param>
+        /// <param name="endDate">>The end date (optional).</param>
+        /// <returns>List of next execution dates and the associated tasks.</returns>
+        public static IEnumerable<(DateTime NextOccurrence, IEnumerable<ITask> ScheduledTasks)> GetNextOccurrences(this IScheduler scheduler, DateTime? startDate = null, DateTime? endDate = null)
         {
-            var scheduledTask = scheduler.GetTaskById(taskId);
-            scheduledTask.CrontabSchedule = crontabSchedule;
-            scheduler.UpdateTask(scheduledTask);
+            var tasks = scheduler.GetTasks();
+
+            var startDateValue = startDate != null ? startDate.Value : DateTime.Now;
+
+            IEnumerable<(DateTime NextOccurrence, ITask Task)> nextOccurrences;
+
+            if (endDate is DateTime endDateValue)
+            {
+                nextOccurrences = GetNextOccurrences(tasks, startDateValue, endDateValue);
+            }
+            else
+            {
+                nextOccurrences = GetNextOccurrences(tasks, startDateValue);
+            }
+
+            var tasksGroupedByNextOccurrence = nextOccurrences
+                .GroupBy(g => g.NextOccurrence)
+                .Select(g => (NextOccurrence: g.Key, ScheduledTasks: g.Select(c => c.Task)));
+
+            return tasksGroupedByNextOccurrence;
+        }
+
+        private static IEnumerable<(DateTime NextOccurrence, ITask Task)> GetNextOccurrences(IEnumerable<ITask> tasks, DateTime startDate)
+        {
+            return tasks.Select(t => (NextOccurrence: t.CrontabSchedule.GetNextOccurrence(startDate), Task: t));
+        }
+
+        private static IEnumerable<(DateTime NextOccurrence, ITask Task)> GetNextOccurrences(IEnumerable<ITask> tasks, DateTime startDateValue, DateTime endDateValue)
+        {
+            return tasks.SelectMany(t => t.CrontabSchedule.GetNextOccurrences(startDateValue, endDateValue).Select(d => (NextOccurrence: d, Task: t)));
         }
     }
 }
