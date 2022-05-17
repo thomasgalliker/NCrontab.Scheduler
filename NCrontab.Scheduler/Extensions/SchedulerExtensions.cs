@@ -159,7 +159,9 @@ namespace NCrontab.Scheduler
 
         private static IEnumerable<(DateTime NextOccurrence, ITask Task)> GetNextOccurrences(IEnumerable<ITask> tasks, DateTime startDateValue, DateTime endDateValue)
         {
-            return tasks.SelectMany(t => t.CrontabSchedule.GetNextOccurrences(startDateValue, endDateValue).Select(d => (NextOccurrence: d, Task: t)));
+            return tasks
+                .SelectMany(t => t.CrontabSchedule.GetNextOccurrences(startDateValue, endDateValue)
+                .Select(d => (NextOccurrence: d, Task: t)));
         }
     }
 }
