@@ -399,13 +399,11 @@ namespace NCrontab.Scheduler
 
             lock (this.threadLock)
             {
-                if (!this.IsRunning)
+                if (this.IsRunning)
                 {
-                    throw new InvalidOperationException($"Scheduler is not running");
+                    this.localCancellationTokenSource.Cancel();
+                    this.IsRunning = false;
                 }
-
-                this.localCancellationTokenSource.Cancel();
-                this.IsRunning = false;
             }
         }
 
