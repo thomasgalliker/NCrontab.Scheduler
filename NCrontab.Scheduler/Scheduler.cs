@@ -157,8 +157,11 @@ namespace NCrontab.Scheduler
                     results.Add((task.Id, removed));
                 }
 
+                var removedCount = results.Count(r => r.Removed);
+                var totalCount = tasks.Length;
+
                 this.logger.LogDebug(
-                    $"RemoveTasks:{Environment.NewLine}" +
+                    $"RemoveTasks: {removedCount}{(removedCount != totalCount ? $"/{totalCount}" : "")}{Environment.NewLine}" +
                     $"{string.Join(Environment.NewLine, results.Select(r => $"> task.Id={r.TaskId:B} -> {(r.Removed ? "removed" : "not found")}"))}");
 
                 if (this.IsRunning)
