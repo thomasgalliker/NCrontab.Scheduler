@@ -64,11 +64,11 @@ namespace NCrontab.Scheduler
         event EventHandler<ScheduledEventArgs> Next;
 
         /// <summary>
-        /// Removes the scheduled task with given <paramref name="taskId"/>.
+        /// Removes the scheduled <paramref name="tasks"/>.
         /// </summary>
-        /// <param name="taskId">The task identifier.</param>
-        /// <returns>True, if task with <paramref name="taskId"/> was found and removed.</returns>
-        bool RemoveTask(Guid taskId);
+        /// <param name="tasks">The tasks to be removed.</param>
+        /// <returns>(TaskId, true) for each task that was found and removed. (TaskId, false) for each task that was not found.</returns>
+        (Guid TaskId, bool Removed)[] RemoveTasks(params ITask[] tasks);
 
         /// <summary>
         /// Removes all scheduled tasks.

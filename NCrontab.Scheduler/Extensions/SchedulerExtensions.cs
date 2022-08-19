@@ -123,6 +123,46 @@ namespace NCrontab.Scheduler
         }
 
         /// <summary>
+        /// Removes the scheduled <paramref name="task"/>.
+        /// </summary>
+        /// <param name="taskId">The identifier of the task to be removed.</param>
+        /// <returns>True, if task with <paramref name="taskId"/> was found and removed.</returns>
+        public static bool RemoveTask(this IScheduler scheduler, ITask task)
+        {
+            var results = scheduler.RemoveTasks(task);
+            return results[0].Removed;
+        }
+
+        /// <summary>
+        /// Removes the scheduled task with given <paramref name="taskId"/>.
+        /// </summary>
+        /// <param name="taskId">The identifier of the task to be removed.</param>
+        /// <returns>True, if task with <paramref name="taskId"/> was found and removed.</returns>
+        public static bool RemoveTask(this IScheduler scheduler, Guid taskId)
+        {
+            var results = scheduler.RemoveTasks(taskId);
+            return results[0].Removed;
+        }
+
+        /// <summary>
+        /// Removes the scheduled tasks with given <paramref name="taskIds"/>.
+        /// </summary>
+        /// <param name="taskIds">The identifiers of the tasks to be removed.</param>
+        /// <returns>(TaskId, true) for each task that was found and removed. (TaskId, false) for each task that was not found.</returns>
+        public static (Guid TaskId, bool Removed)[] RemoveTasks(this IScheduler scheduler, params Guid[] taskIds)
+        {
+            var tasksToRemove = scheduler.GetTasks()
+                .Where(t => taskIds.Contains(t.Id));
+
+            var nonExistingTasks = taskIds
+                .Except(tasksToRemove.Select(t => t.Id))
+                .Select(d => new NullTask(d));
+
+            var results = scheduler.RemoveTasks(tasksToRemove.Concat(nonExistingTasks).ToArray());
+            return results;
+        }
+
+        /// <summary>
         /// Returns the planned next execution dates and tasks.
         /// </summary>
         /// <param name="startDate">The start date (optional).</param>

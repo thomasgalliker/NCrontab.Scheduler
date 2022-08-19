@@ -145,28 +145,31 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
-        public bool RemoveTask(Guid taskId)
+        public (Guid TaskId, bool Removed)[] RemoveTasks(params ITask[] tasks)
         {
-            this.logger.LogDebug($"RemoveTask: taskId={taskId:B}");
-
             lock (this.threadLock)
             {
-                var existingScheduledTask = this.GetTaskById(taskId);
-                if (existingScheduledTask != null)
+                var results = new List<(Guid TaskId, bool Removed)>();
+
+                foreach (var task in tasks)
                 {
-                    var removed = this.scheduledTasks.Remove(existingScheduledTask);
-
-                    if (this.IsRunning)
-                    {
-                        this.ResetScheduler();
-                    }
-
-                    return removed;
+                    var removed = this.scheduledTasks.Remove(task);
+                    results.Add((task.Id, removed));
                 }
 
-                this.logger.LogWarning($"RemoveTask: Task with taskId={taskId:B} could not be found");
+                var removedCount = results.Count(r => r.Removed);
+                var totalCount = tasks.Length;
 
-                return false;
+                this.logger.LogDebug(
+                    $"RemoveTasks: {removedCount}{(removedCount != totalCount ? $"/{totalCount}" : "")}{Environment.NewLine}" +
+                    $"{string.Join(Environment.NewLine, results.Select(r => $"> task.Id={r.TaskId:B} -> {(r.Removed ? "removed" : "not found")}"))}");
+
+                if (this.IsRunning)
+                {
+                    this.ResetScheduler();
+                }
+
+                return results.ToArray();
             }
         }
 
