@@ -59,7 +59,7 @@ namespace NCrontab.Scheduler
 
         /// <summary>
         /// Next event fires if the scheduler triggers the execution
-        /// of the next task in the pipeline.
+        /// of the next task(s) in the pipeline.
         /// </summary>
         event EventHandler<ScheduledEventArgs> Next;
 
