@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using NCrontab.Scheduler.MessagePipe;
 
 namespace NCrontab.Scheduler
 {
@@ -62,6 +63,8 @@ namespace NCrontab.Scheduler
         /// of the next task(s) in the pipeline.
         /// </summary>
         event EventHandler<ScheduledEventArgs> Next;
+
+        void Subscribe(IMessageHandler<ScheduledEventArgs> messageHandler, params MessageHandlerFilter<ScheduledEventArgs>[] filters);
 
         /// <summary>
         /// Removes the scheduled <paramref name="tasks"/>.

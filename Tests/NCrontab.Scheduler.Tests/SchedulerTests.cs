@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.AutoMock;
 using NCrontab.Scheduler.Internals;
+using NCrontab.Scheduler.MessagePipe;
 using NCrontab.Scheduler.Tests.Extensions;
 using NCrontab.Scheduler.Tests.Logging;
 using NCrontab.Scheduler.Tests.TestData;
@@ -410,6 +411,46 @@ namespace NCrontab.Scheduler.Tests
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
             scheduler.Next += (sender, args) => { nextCount++; };
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(4000))
+            {
+                var startTask = Task.Run(async () =>
+                {
+                    await scheduler.StartAsync(cancellationTokenSource.Token);
+                });
+
+                await Task.Delay(100);
+
+                var taskId = scheduler.AddTask("* * * * *", ct => { });
+
+                await Task.Delay(1100);
+
+                scheduler.RemoveTask(taskId);
+
+                await startTask;
+            }
+
+            // Assert
+            nextCount.Should().Be(1);
+        }
+        
+        [Fact]
+        public async Task ShouldSubscribeAndPublish()
+        {
+            // Arrange
+            var nextCount = 0;
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.SetupSequence(d => d.UtcNow)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 00));
+
+            var messageHandler = new AnonymousMessageHandler<ScheduledEventArgs>((args) => { });
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+            scheduler.Subscribe(messageHandler);
 
             // Act
             using (var cancellationTokenSource = new CancellationTokenSource(4000))

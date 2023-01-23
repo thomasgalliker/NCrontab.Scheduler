@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCrontab.Scheduler.Extensions;
 using NCrontab.Scheduler.Internals;
+using NCrontab.Scheduler.MessagePipe;
 
 namespace NCrontab.Scheduler
 {
@@ -382,12 +383,21 @@ namespace NCrontab.Scheduler
             }
         }
 
+        private MessageBroker<ScheduledEventArgs> messageBroker = new MessageBroker<ScheduledEventArgs>();
+
+        public void Subscribe(IMessageHandler<ScheduledEventArgs> messageHandler, params MessageHandlerFilter<ScheduledEventArgs>[] filters)
+        {
+            this.messageBroker.Subscribe(messageHandler, filters);
+        }
+
         public event EventHandler<ScheduledEventArgs> Next;
 
         private void RaiseNextEvent(DateTime signalTime, params ITask[] tasks)
         {
             try
             {
+                this.messageBroker.Publish(new ScheduledEventArgs(signalTime, tasks.Select(t => t.Id).ToArray()));
+
                 this.Next?.Invoke(this, new ScheduledEventArgs(signalTime, tasks.Select(t => t.Id).ToArray()));
             }
             catch (Exception e)
