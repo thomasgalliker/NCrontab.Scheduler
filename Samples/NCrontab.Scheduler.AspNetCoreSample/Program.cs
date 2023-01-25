@@ -1,5 +1,4 @@
 using NCrontab.Scheduler;
-using NCrontab.Scheduler.AspNetCore.Extensions;
 using NCrontab.Scheduler.AspNetCoreSample.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
