@@ -8,7 +8,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add scheduler
-builder.Services.AddScheduler();
+builder.Services.AddHostedScheduler();
 
 // Add nightly task to scheduler
 builder.Services.AddSingleton<IScheduledTask, NightlyTask>();
