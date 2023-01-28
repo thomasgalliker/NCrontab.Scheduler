@@ -1,4 +1,4 @@
-﻿namespace NCrontab.Scheduler.AspNetCore
+﻿namespace NCrontab.Scheduler
 {
     public interface ISchedulerFactory
     {
