@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using NCrontab.Scheduler;
-using NCrontab.Scheduler.AspNetCore;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
