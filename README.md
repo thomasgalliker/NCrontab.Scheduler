@@ -24,14 +24,24 @@ You can use this library in any ASP.NET Core project which is compatible to .NET
 ## API Usage
 ### Creating a Scheduler
 `Scheduler` implements the main scheduler operations.
+
+#### Create new Scheduler instance
 You can either create a new instance of Scheduler manually:
 ```C#
 IScheduler scheduler = new Scheduler();
 ```
-Alternatively, you can access the provided singleton instance `Scheduler.Current` or register/resolve `Scheduler` and `IScheduler` in your dependency injection framework.
+
+#### Access static Scheduler instance
+Alternatively, you can access the provided singleton instance `Scheduler.Current`.
+
+#### Inject Scheduler using dependency injection
+Alternatively, you can register/resolve `IScheduler` in Microsoft's DI framework `Microsoft.Extensions.DependencyInjection`.
 ```C#
-serviceCollection.AddSingleton<IScheduler>(x => new Scheduler(x.GetRequiredService<ILogger<Scheduler>>()));
+serviceCollection.AddScheduler();
 ```
+
+This `AddScheduler` call registers `IScheduler` and `ISchedulerFactory` as singleton services which can now be injected in your code.
+If you prefer to have multiple instances of `IScheduler` across your code, inject `ISchedulerFactory` instead and use the Create method to create new instances of `IScheduler`.
 
 ### Add Scheduled Tasks
 Use method `AddTask` with all the provided convenience overloads to add tasks to the scheduler.
