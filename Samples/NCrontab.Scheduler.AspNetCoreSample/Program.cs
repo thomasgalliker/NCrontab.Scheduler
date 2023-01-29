@@ -1,5 +1,4 @@
 using NCrontab.Scheduler;
-using NCrontab.Scheduler.AspNetCore.Extensions;
 using NCrontab.Scheduler.AspNetCoreSample.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +8,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add scheduler
-builder.Services.AddScheduler();
+builder.Services.AddHostedScheduler();
 
 // Add nightly task to scheduler
 builder.Services.AddSingleton<IScheduledTask, NightlyTask>();

@@ -1,17 +1,17 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using NCrontab.Scheduler.AspNetCore;
 
-namespace NCrontab.Scheduler.AspNetCore.Extensions
+namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddScheduler(this IServiceCollection serviceCollection)
+        public static void AddHostedScheduler(this IServiceCollection serviceCollection)
         {
             // Register services
-            serviceCollection.AddSingleton<IScheduler>(x => new Scheduler(x.GetRequiredService<ILogger<Scheduler>>()));
+            serviceCollection.AddScheduler();
 
             // Add hosted service
-            serviceCollection.AddHostedService<HostedSchedulerService>();
+           serviceCollection.AddHostedService<HostedSchedulerService>();
         }
     }
 }

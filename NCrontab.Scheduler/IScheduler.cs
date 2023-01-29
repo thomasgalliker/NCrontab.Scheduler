@@ -42,7 +42,7 @@ namespace NCrontab.Scheduler
         /// Returns all tasks.
         /// </summary>
         IEnumerable<ITask> GetTasks();
-        
+
         /// <summary>
         /// Updates the schedule of the <paramref name="scheduledTask"/>.
         /// </summary>
