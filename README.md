@@ -111,3 +111,11 @@ Each task run is isolated from all other scheduled tasks. The success or failure
 ## License
 This project is Copyright &copy; 2023 [Thomas Galliker](https://ch.linkedin.com/in/thomasgalliker). Free for non-commercial use. For commercial use please contact the author.
 
+## Links
+- https://github.com/ilromali/reverse-proxy/blob/72bd65b9aa405f19390e1862f68d6631b599eb73/src/ReverseProxy/Service/Management/EntityActionScheduler.cs
+- https://edurev.in/studytube/Real-Time-Task-Scheduling-1/936b294c-d0f9-4e2d-8b05-7e41ac01a8f3_t
+- https://lectures.tik.ee.ethz.ch/es/slides/6_RealTimeScheduling.pdf
+- https://github.com/yuanhx/Monitor/blob/54aaef1b3b96e0e981a3a3312c48d5042479f0d2/visionlib/scheduler/Scheduler.cs
+- https://github.com/ramonsmits/CronTimer/blob/433510fd3a07507f5f1a518e8fbc31d173a9b09f/src/CronTimer.cs
+- https://github.com/maxcherednik/Tempus/tree/master/src/Tempus
+- https://github.com/atifaziz/NCrontab/issues/28
