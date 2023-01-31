@@ -42,7 +42,7 @@ namespace NCrontab.Scheduler
         /// Returns all tasks.
         /// </summary>
         IEnumerable<ITask> GetTasks();
-        
+
         /// <summary>
         /// Updates the schedule of the <paramref name="scheduledTask"/>.
         /// </summary>
@@ -59,7 +59,7 @@ namespace NCrontab.Scheduler
 
         /// <summary>
         /// Next event fires if the scheduler triggers the execution
-        /// of the next task in the pipeline.
+        /// of the next task(s) in the pipeline.
         /// </summary>
         event EventHandler<ScheduledEventArgs> Next;
 

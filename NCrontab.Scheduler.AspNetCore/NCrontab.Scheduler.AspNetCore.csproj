@@ -1,15 +1,53 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-	  <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>NCrontab.Scheduler.AspNetCore</AssemblyTitle>
+		<Description>NCrontab.Scheduler.AspNetCore is a simple, open source task scheduling system for ASP.NET applications.</Description>
+		<VersionPrefix>1.0.0</VersionPrefix>
+		<Version>1.0.0</Version>
+		<Authors>Thomas Galliker</Authors>
+		<TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0;net6.0;net7.0</TargetFrameworks>
+		<AssemblyName>NCrontab.Scheduler.AspNetCore</AssemblyName>
+		<PackageId>NCrontab.Scheduler.AspNetCore</PackageId>
+		<PackageTags>cron;ncrontab;scheduling;scheduler;scheduled;task;tasks</PackageTags>
+		<PackageIconUrl>https://raw.githubusercontent.com/thomasgalliker/NCrontab.Scheduler/develop/logo.png</PackageIconUrl>
+		<PackageProjectUrl>https://github.com/thomasgalliker/NCrontab.Scheduler</PackageProjectUrl>
+		<PackageLicenseUrl>http://opensource.org/licenses/Apache-2.0</PackageLicenseUrl>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/thomasgalliker/NCrontab.Scheduler</RepositoryUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<SignAssembly>True</SignAssembly>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
-  </ItemGroup>
+	<PropertyGroup>
+		<ApplicationIcon />
+		<OutputType>Library</OutputType>
+		<StartupObject />
+		<Company>superdev GmbH</Company>
+		<Product>NCrontab.Scheduler.AspNetCore</Product>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<RootNamespace>NCrontab.Scheduler.AspNetCore</RootNamespace>
+		<PackageReleaseNotes>
+			1.0.0
+			- Initial release
+		</PackageReleaseNotes>
+		<Copyright>Copyright 2023</Copyright>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NCrontab.Scheduler\NCrontab.Scheduler.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\NCrontab.Scheduler\NCrontab.Scheduler.csproj" />
+	</ItemGroup>
 
 </Project>

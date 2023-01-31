@@ -24,14 +24,24 @@ You can use this library in any ASP.NET Core project which is compatible to .NET
 ## API Usage
 ### Creating a Scheduler
 `Scheduler` implements the main scheduler operations.
+
+#### Create new Scheduler instance
 You can either create a new instance of Scheduler manually:
 ```C#
 IScheduler scheduler = new Scheduler();
 ```
-Alternatively, you can access the provided singleton instance `Scheduler.Current` or register/resolve `Scheduler` and `IScheduler` in your dependency injection framework.
+
+#### Access static Scheduler instance
+Alternatively, you can access the provided singleton instance `Scheduler.Current`.
+
+#### Inject Scheduler using dependency injection
+Alternatively, you can register/resolve `IScheduler` in Microsoft's DI framework `Microsoft.Extensions.DependencyInjection`.
 ```C#
-serviceCollection.AddSingleton<IScheduler>(x => new Scheduler(x.GetRequiredService<ILogger<Scheduler>>()));
+serviceCollection.AddScheduler();
 ```
+
+This `AddScheduler` call registers `IScheduler` and `ISchedulerFactory` as singleton services which can now be injected in your code.
+If you prefer to have multiple instances of `IScheduler` across your code, inject `ISchedulerFactory` instead and use the Create method to create new instances of `IScheduler`.
 
 ### Add Scheduled Tasks
 Use method `AddTask` with all the provided convenience overloads to add tasks to the scheduler.
@@ -99,5 +109,13 @@ All scheduler operations are kept thread-safe. Adding and removing tasks as well
 Each task run is isolated from all other scheduled tasks. The success or failure of execution does not have any negative side effect on other scheduled tasks.
 
 ## License
-This project is Copyright &copy; 2022 [Thomas Galliker](https://ch.linkedin.com/in/thomasgalliker). Free for non-commercial use. For commercial use please contact the author.
+This project is Copyright &copy; 2023 [Thomas Galliker](https://ch.linkedin.com/in/thomasgalliker). Free for non-commercial use. For commercial use please contact the author.
 
+## Links
+- https://github.com/ilromali/reverse-proxy/blob/72bd65b9aa405f19390e1862f68d6631b599eb73/src/ReverseProxy/Service/Management/EntityActionScheduler.cs
+- https://edurev.in/studytube/Real-Time-Task-Scheduling-1/936b294c-d0f9-4e2d-8b05-7e41ac01a8f3_t
+- https://lectures.tik.ee.ethz.ch/es/slides/6_RealTimeScheduling.pdf
+- https://github.com/yuanhx/Monitor/blob/54aaef1b3b96e0e981a3a3312c48d5042479f0d2/visionlib/scheduler/Scheduler.cs
+- https://github.com/ramonsmits/CronTimer/blob/433510fd3a07507f5f1a518e8fbc31d173a9b09f/src/CronTimer.cs
+- https://github.com/maxcherednik/Tempus/tree/master/src/Tempus
+- https://github.com/atifaziz/NCrontab/issues/28

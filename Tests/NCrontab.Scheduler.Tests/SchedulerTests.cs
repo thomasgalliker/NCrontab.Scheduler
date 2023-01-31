@@ -80,6 +80,37 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
+        public async Task ShouldAddTask_SingleTask_Synchronous_SecondsInterval()
+        {
+            // Arrange
+            var referenceDate = new DateTime(2019, 11, 06, 14, 43, 58);
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate, (n) => n.AddSeconds(1));
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var options = new CrontabSchedule.ParseOptions
+            {
+                IncludingSeconds = true,
+            };
+            var crontabSchedule = CrontabSchedule.Parse("* * * * * *", options);
+            var actionObject = new TestObject();
+            scheduler.AddTask(crontabSchedule, (cancellationToken) =>
+            {
+                actionObject.Run();
+            });
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(11000))
+            {
+                await scheduler.StartAsync(cancellationTokenSource.Token);
+            }
+
+            // Arrange
+            actionObject.RunCount.Should().Be(10);
+        }
+
+        [Fact]
         public async Task ShouldAddTask_SingleTask_Asynchronous()
         {
             // Arrange
