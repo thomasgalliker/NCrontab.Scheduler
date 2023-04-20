@@ -23,6 +23,7 @@ namespace NCrontab.Scheduler
             this.CrontabSchedule = cronExpression;
             this.action = action;
         }
+
         public Guid Id { get; }
 
         public CrontabSchedule CrontabSchedule { get; set; }
