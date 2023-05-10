@@ -80,7 +80,7 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
-        public async Task ShouldAddTask_SingleTask_Synchronous_SecondsInterval()
+        public async Task ShouldAddTask_SingleTask_Synchronous_ParseIncludingSeconds()
         {
             // Arrange
             var referenceDate = new DateTime(2019, 11, 06, 14, 43, 58);
