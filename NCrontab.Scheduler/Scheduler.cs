@@ -49,7 +49,7 @@ namespace NCrontab.Scheduler
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         public Scheduler(ILogger<Scheduler> logger)
-            : this(logger, new SystemDateTime(), new DefaultSchedulerOptions())
+            : this(logger, new SystemDateTime(), new SchedulerOptions())
         {
         }
 
@@ -281,7 +281,7 @@ namespace NCrontab.Scheduler
 
                     if (scheduledTasksToRun.Length > 0)
                     {
-                        var signalTime = this.GetCurrentDate();
+                        var signalTime = this.dateTime.UtcNow;
                         var timingInaccuracy = signalTime - nextOccurrence;
                         this.logger.LogInformation(
                             $"Starting scheduled event:{Environment.NewLine}" +

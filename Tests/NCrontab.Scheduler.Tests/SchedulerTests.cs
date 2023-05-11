@@ -25,8 +25,13 @@ namespace NCrontab.Scheduler.Tests
         public SchedulerTests(ITestOutputHelper testOutputHelper)
         {
             this.testOutputHelper = testOutputHelper;
+
             this.autoMocker = new AutoMocker();
             this.autoMocker.Use<ILogger<Scheduler>>(new TestOutputHelperLogger<Scheduler>(testOutputHelper));
+
+            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
+            schedulerOptionsMock.SetupGet(o => o.DateTimeKind)
+                .Returns(DateTimeKind.Utc);
         }
 
         [Fact]

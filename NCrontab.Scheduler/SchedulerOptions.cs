@@ -2,9 +2,9 @@
 
 namespace NCrontab.Scheduler
 {
-    public class DefaultSchedulerOptions : ISchedulerOptions
+    public class SchedulerOptions : ISchedulerOptions
     {
-        public DefaultSchedulerOptions()
+        public SchedulerOptions()
         {
             this.DateTimeKind = DateTimeKind.Utc;
         }
