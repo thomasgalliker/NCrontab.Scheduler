@@ -29,6 +29,7 @@ namespace NCrontab.Scheduler
 
         private readonly List<ITask> scheduledTasks = new List<ITask>();
         private readonly IDateTime dateTime;
+        private readonly ISchedulerOptions schedulerOptions;
         private readonly ILogger<Scheduler> logger;
         private CancellationTokenSource localCancellationTokenSource;
         private CancellationToken externalCancellationToken;
@@ -48,7 +49,17 @@ namespace NCrontab.Scheduler
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         public Scheduler(ILogger<Scheduler> logger)
-            : this(logger, new SystemDateTime())
+            : this(logger, new SystemDateTime(), new DefaultSchedulerOptions())
+        {
+        }
+
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Scheduler"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        public Scheduler(ILogger<Scheduler> logger, ISchedulerOptions schedulerOptions)
+            : this(logger, new SystemDateTime(), schedulerOptions)
         {
         }
 
@@ -59,10 +70,12 @@ namespace NCrontab.Scheduler
         /// <param name="dateTime">The datetime provider.</param>
         internal Scheduler(
             ILogger<Scheduler> logger,
-            IDateTime dateTime)
+            IDateTime dateTime,
+            ISchedulerOptions schedulerOptions)
         {
-            this.dateTime = dateTime;
             this.logger = logger;
+            this.dateTime = dateTime;
+            this.schedulerOptions = schedulerOptions;
         }
 
         /// <inheritdoc/>
@@ -220,7 +233,7 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    var now = this.dateTime.UtcNow;
+                    var now = this.GetCurrentDate();
                     var (nextOccurrence, taskIds) = this.GetScheduledTasksToRunAndHowLongToWait(now);
 
                     TimeSpan timeToWait;
@@ -268,7 +281,7 @@ namespace NCrontab.Scheduler
 
                     if (scheduledTasksToRun.Length > 0)
                     {
-                        var signalTime = this.dateTime.UtcNow;
+                        var signalTime = this.GetCurrentDate();
                         var timingInaccuracy = signalTime - nextOccurrence;
                         this.logger.LogInformation(
                             $"Starting scheduled event:{Environment.NewLine}" +
@@ -319,6 +332,13 @@ namespace NCrontab.Scheduler
             }
         }
 
+        private DateTime GetCurrentDate()
+        {
+            return this.schedulerOptions.DateTimeKind == DateTimeKind.Local 
+                ? this.dateTime.Now 
+                : this.dateTime.UtcNow;
+        }
+
         public bool IsRunning
         {
             get => this.isRunning;
@@ -332,7 +352,7 @@ namespace NCrontab.Scheduler
             }
         }
 
-        private (DateTime, IReadOnlyCollection<Guid>) GetScheduledTasksToRunAndHowLongToWait(DateTime now)
+        private (DateTime NextOccurrance, IReadOnlyCollection<Guid> TaskIds) GetScheduledTasksToRunAndHowLongToWait(DateTime now)
         {
             var lowestNextTimeToRun = DateTime.MaxValue;
             var lowestIds = new List<Guid>();
@@ -378,7 +398,7 @@ namespace NCrontab.Scheduler
             lock (this.threadLock)
             {
                 this.localCancellationTokenSource = new CancellationTokenSource();
-                this.externalCancellationToken.Register(() => this.localCancellationTokenSource.Cancel());
+                this.externalCancellationToken.Register(this.localCancellationTokenSource.Cancel);
             }
         }
 
