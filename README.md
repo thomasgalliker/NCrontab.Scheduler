@@ -40,8 +40,22 @@ Alternatively, you can register/resolve `IScheduler` in Microsoft's DI framework
 serviceCollection.AddScheduler();
 ```
 
-This `AddScheduler` call registers `IScheduler` and `ISchedulerFactory` as singleton services which can now be injected in your code.
+This `AddScheduler` call regist
+ers `IScheduler` and `ISchedulerFactory` as singleton services which can now be injected in your code.
 If you prefer to have multiple instances of `IScheduler` across your code, inject `ISchedulerFactory` instead and use the Create method to create new instances of `IScheduler`.
+
+### Scheduler Options
+The `Scheduler` class has an extra parameter `ISchedulerOptions` which allows to override the default configuration of the scheduler.
+If you use dependency injection, you can also configure the scheduler using the `AddScheduler` method:
+```C#
+serviceCollection.AddScheduler(o =>
+{
+    o.DateTimeKind = DateTimeKind.Utc;
+});
+```
+
+Following options are available:
+- **DateTimeKind**: Interprets the given cron expressions as UTC or local time. Default is UTC.
 
 ### Add Scheduled Tasks
 Use method `AddTask` with all the provided convenience overloads to add tasks to the scheduler.

@@ -116,6 +116,42 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
+        public async Task ShouldAddTask_SingleTask_Synchronous_WithLocalTime()
+        {
+            // Arrange
+            var referenceDate = new DateTime(2000, 1, 1, 16, 33, 58, DateTimeKind.Utc);
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.SetupSequence(d => d.Now, referenceDate, (n) => n.AddSeconds(1));
+            dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate.ToLocalTime(), (n) => n.AddSeconds(1));
+
+            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
+            schedulerOptionsMock.SetupGet(o => o.DateTimeKind)
+                .Returns(DateTimeKind.Local);
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var crontabSchedule = CrontabSchedule.Parse("0 12 1 11 *");
+            var next1 = crontabSchedule.GetNextOccurrence(new DateTime(2023, 01, 01, 11, 00, 00, DateTimeKind.Local));
+            var next2 = crontabSchedule.GetNextOccurrence(new DateTime(2023, 05, 12, 11, 00, 00, DateTimeKind.Local));
+            var next3 = crontabSchedule.GetNextOccurrence(new DateTime(2023, 11, 01, 11, 00, 00, DateTimeKind.Local));
+
+            var actionObject = new TestObject();
+            scheduler.AddTask(crontabSchedule, (cancellationToken) =>
+            {
+                actionObject.Run();
+            });
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(1100))
+            {
+                await scheduler.StartAsync(cancellationTokenSource.Token);
+            }
+
+            // Arrange
+            actionObject.RunCount.Should().Be(1);
+        }
+
+        [Fact]
         public async Task ShouldAddTask_SingleTask_Asynchronous()
         {
             // Arrange
@@ -483,8 +519,9 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 45, 00));
 
             var logger = new Mock<ILogger<Scheduler>>();
+            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
 
-            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object);
+            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object, schedulerOptionsMock.Object);
 
             var actionObject = new TestObject();
             scheduler.AddTask("44 14 * * *", (cancellationToken) =>
@@ -633,8 +670,9 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 44, 00));
 
             var logger = new Mock<ILogger<Scheduler>>();
+            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
 
-            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object);
+            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object, schedulerOptionsMock.Object);
 
             var testObject1 = new TestObject();
             scheduler.AddTask(CrontabSchedule.Parse("* * * * *"), async (cancellationToken) =>
