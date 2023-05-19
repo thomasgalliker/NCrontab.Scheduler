@@ -54,6 +54,18 @@ serviceCollection.AddScheduler(o =>
 });
 ```
 
+Scheduler options can also be read from appSettings.json. Create a new section in your appSettings.json.
+```XML
+"NCrontab.Scheduler": {
+    "DateTimeKind": "Utc"
+},
+```
+Refer to the new configuration section when you call `AddScheduler`:
+```C#
+var configurationSection = builder.Configuration.GetSection("NCrontab.Scheduler");
+builder.Services.AddScheduler(configurationSection);
+```
+
 Following options are available:
 - **DateTimeKind**: Interprets the given cron expressions as UTC or local time. Default is UTC.
 

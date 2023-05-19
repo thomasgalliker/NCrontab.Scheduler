@@ -7,8 +7,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add scheduler
+// Add scheduler using default configuration
 builder.Services.AddHostedScheduler();
+
+// Add hosted scheduler using custom configuration
+//builder.Services.AddHostedScheduler(o =>
+//{
+//    o.DateTimeKind = DateTimeKind.Utc;
+//});
+
+// Add hosted scheduler using configuration from appSettings.json
+//var configurationSection = builder.Configuration.GetSection("NCrontab.Scheduler");
+//builder.Services.AddHostedScheduler(configurationSection);
 
 // Add nightly task to scheduler
 builder.Services.AddSingleton<IScheduledTask, NightlyTask>();
