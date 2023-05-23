@@ -28,9 +28,11 @@
 		<Product>NCrontab.Scheduler</Product>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<RootNamespace>NCrontab.Scheduler</RootNamespace>
-		<PackageReleaseNotes>
-			1.0.0
-			- Initial release
+		<PackageReleaseNotes>1.2.x
+- Add SchedulerOptions to define if cron time should be parsed in UTC or local time
+
+1.0.0
+- Initial release
 		</PackageReleaseNotes>
 		<Copyright>Copyright 2023</Copyright>
 	</PropertyGroup>
@@ -43,8 +45,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="[6.0.0,)" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[6.0.1,)" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="[6.0.0,)" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="[6.0.1,)" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="[6.0.0,)" />
 		<PackageReference Include="ncrontab" Version="[3.3.1,)" />
 	</ItemGroup>
 

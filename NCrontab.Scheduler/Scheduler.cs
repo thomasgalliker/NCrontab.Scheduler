@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NCrontab.Scheduler.Extensions;
 using NCrontab.Scheduler.Internals;
 
@@ -13,8 +14,7 @@ namespace NCrontab.Scheduler
     /// <inheritdoc/>
     public class Scheduler : IScheduler
     {
-        private static readonly Lazy<IScheduler> Implementation =
-            new Lazy<IScheduler>(CreateScheduler, LazyThreadSafetyMode.PublicationOnly);
+        private static readonly Lazy<IScheduler> Implementation = new Lazy<IScheduler>(CreateScheduler, LazyThreadSafetyMode.PublicationOnly);
 
         public static IScheduler Current => Implementation.Value;
 
@@ -29,6 +29,7 @@ namespace NCrontab.Scheduler
 
         private readonly List<ITask> scheduledTasks = new List<ITask>();
         private readonly IDateTime dateTime;
+        private readonly ISchedulerOptions schedulerOptions;
         private readonly ILogger<Scheduler> logger;
         private CancellationTokenSource localCancellationTokenSource;
         private CancellationToken externalCancellationToken;
@@ -48,7 +49,27 @@ namespace NCrontab.Scheduler
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         public Scheduler(ILogger<Scheduler> logger)
-            : this(logger, new SystemDateTime())
+            : this(logger, new SchedulerOptions())
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Scheduler"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        public Scheduler(ILogger<Scheduler> logger, IOptions<SchedulerOptions> schedulerOptions)
+            : this(logger, schedulerOptions.Value)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Scheduler"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
+        public Scheduler(ILogger<Scheduler> logger, ISchedulerOptions schedulerOptions)
+            : this(logger, new SystemDateTime(), schedulerOptions)
         {
         }
 
@@ -57,12 +78,15 @@ namespace NCrontab.Scheduler
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         /// <param name="dateTime">The datetime provider.</param>
+        /// <param name="schedulerOptions">The scheduler options.</param>
         internal Scheduler(
             ILogger<Scheduler> logger,
-            IDateTime dateTime)
+            IDateTime dateTime,
+            ISchedulerOptions schedulerOptions)
         {
-            this.dateTime = dateTime;
             this.logger = logger;
+            this.dateTime = dateTime;
+            this.schedulerOptions = schedulerOptions;
         }
 
         /// <inheritdoc/>
@@ -220,8 +244,9 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    var now = this.dateTime.UtcNow;
-                    var (nextOccurrence, taskIds) = this.GetScheduledTasksToRunAndHowLongToWait(now);
+                    var now = this.GetCurrentDate();
+                    var utcNow = now.ToUniversalTime();
+                    var (startDateUtc, taskIds) = this.GetScheduledTasksToRunAndHowLongToWait(now);
 
                     TimeSpan timeToWait;
                     if (taskIds.Count == 0)
@@ -233,11 +258,11 @@ namespace NCrontab.Scheduler
                     }
                     else
                     {
-                        timeToWait = nextOccurrence.Subtract(now).RoundUp(MaxDelayRounding);
+                        timeToWait = startDateUtc.Subtract(utcNow).RoundUp(MaxDelayRounding);
 
                         this.logger.LogInformation(
                             $"Scheduling next event:{Environment.NewLine}" +
-                            $" --> nextOccurrence: {nextOccurrence:O}{Environment.NewLine}" +
+                            $" --> nextOccurrence: {startDateUtc:O}{Environment.NewLine}" +
                             $" --> timeToWait: {timeToWait}{Environment.NewLine}" +
                             $" --> taskIds ({taskIds.Count}): {string.Join(", ", taskIds.Select(id => $"{id:B}"))}");
                     }
@@ -269,7 +294,7 @@ namespace NCrontab.Scheduler
                     if (scheduledTasksToRun.Length > 0)
                     {
                         var signalTime = this.dateTime.UtcNow;
-                        var timingInaccuracy = signalTime - nextOccurrence;
+                        var timingInaccuracy = signalTime - startDateUtc;
                         this.logger.LogInformation(
                             $"Starting scheduled event:{Environment.NewLine}" +
                             $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
@@ -319,6 +344,13 @@ namespace NCrontab.Scheduler
             }
         }
 
+        private DateTime GetCurrentDate()
+        {
+            return this.schedulerOptions.DateTimeKind == DateTimeKind.Local
+                ? this.dateTime.Now //new DateTime(2023, 10, 29, 0, 0, 0, DateTimeKind.Local) // this.dateTime.Now 
+                : this.dateTime.UtcNow;
+        }
+
         public bool IsRunning
         {
             get => this.isRunning;
@@ -332,7 +364,7 @@ namespace NCrontab.Scheduler
             }
         }
 
-        private (DateTime, IReadOnlyCollection<Guid>) GetScheduledTasksToRunAndHowLongToWait(DateTime now)
+        private (DateTime StartDateUtc, IReadOnlyCollection<Guid> TaskIds) GetScheduledTasksToRunAndHowLongToWait(DateTime now)
         {
             var lowestNextTimeToRun = DateTime.MaxValue;
             var lowestIds = new List<Guid>();
@@ -341,7 +373,7 @@ namespace NCrontab.Scheduler
             {
                 foreach (var scheduledTask in this.scheduledTasks)
                 {
-                    var nextTimeToRun = scheduledTask.CrontabSchedule.GetNextOccurrence(now);
+                    var nextTimeToRun = scheduledTask.CrontabSchedule.GetNextOccurrence(now).ToUniversalTime();
                     if (nextTimeToRun == default)
                     {
                         continue;
@@ -378,7 +410,7 @@ namespace NCrontab.Scheduler
             lock (this.threadLock)
             {
                 this.localCancellationTokenSource = new CancellationTokenSource();
-                this.externalCancellationToken.Register(() => this.localCancellationTokenSource.Cancel());
+                this.externalCancellationToken.Register(this.localCancellationTokenSource.Cancel);
             }
         }
 
