@@ -26,10 +26,14 @@ namespace NCrontab.Scheduler.ConsoleApp
                     .SetMinimumLevel(LogLevel.Debug);
             });
 
-            // Create instance of Scheduler with or without ILogger<Scheduler>
+            // Create instance of Scheduler manually
             // or inject IScheduler using dependency injection.
-            var schedulerLogger = loggerFactory.CreateLogger<Scheduler>();
-            IScheduler scheduler = new Scheduler(schedulerLogger);
+            ILogger<Scheduler> logger = loggerFactory.CreateLogger<Scheduler>();
+            ISchedulerOptions schedulerOptions = new SchedulerOptions
+            {
+                DateTimeKind = DateTimeKind.Utc
+            };
+            IScheduler scheduler = new Scheduler(logger, schedulerOptions);
 
             // Subscribe Next event to get notified
             // for all tasks that are executed.
@@ -55,6 +59,10 @@ namespace NCrontab.Scheduler.ConsoleApp
             scheduler.AddTask(
                 crontabSchedule: CrontabSchedule.Parse("0 0 1 1 *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs on Januar 1 every year"); });
+
+            scheduler.AddTask(
+              crontabSchedule: CrontabSchedule.Parse("0 3 29 10 *"),
+              action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs at a very specific date/time"); });
 
             // Finally, start the scheduler and observe the action callbacks
             // as well as the Next event handler.
