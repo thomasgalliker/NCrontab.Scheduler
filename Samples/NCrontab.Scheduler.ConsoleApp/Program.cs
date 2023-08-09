@@ -31,7 +31,12 @@ namespace NCrontab.Scheduler.ConsoleApp
             ILogger<Scheduler> logger = loggerFactory.CreateLogger<Scheduler>();
             ISchedulerOptions schedulerOptions = new SchedulerOptions
             {
-                DateTimeKind = DateTimeKind.Utc
+                DateTimeKind = DateTimeKind.Utc,
+                Logging = new LoggingOptions
+                {
+                    LogIdentifier = LogIdentifier.TaskName,
+                    DateTimeKind = DateTimeKind.Local
+                },
             };
             IScheduler scheduler = new Scheduler(logger, schedulerOptions);
 
@@ -39,10 +44,13 @@ namespace NCrontab.Scheduler.ConsoleApp
             // for all tasks that are executed.
             scheduler.Next += OnSchedulerNext;
 
-            // Add tasks with different cron schedules and actions. 
-            scheduler.AddTask(
+            // Add tasks with different cron schedules and actions.
+
+            var scheduleTask = new ScheduledTask(
+                name: "MinutelyTask",
                 crontabSchedule: CrontabSchedule.Parse("* * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every minutes"); });
+            scheduler.AddTask(scheduleTask);
 
             scheduler.AddTask(
                 crontabSchedule: CrontabSchedule.Parse("*/2 * * * *"),

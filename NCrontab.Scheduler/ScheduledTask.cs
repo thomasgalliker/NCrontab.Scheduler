@@ -3,30 +3,39 @@ using System.Threading;
 
 namespace NCrontab.Scheduler
 {
-    public class ScheduledTask : IScheduledTask
+    public class ScheduledTask : TaskBase, IScheduledTask
     {
         private readonly Action<CancellationToken> action;
 
         public ScheduledTask(string cronExpression, Action<CancellationToken> action)
-            : this(Guid.NewGuid(), CrontabSchedule.Parse(cronExpression), action)
+            : base(cronExpression)
         {
-        }
-        
-        public ScheduledTask(CrontabSchedule cronExpression, Action<CancellationToken> action)
-            : this(Guid.NewGuid(), cronExpression, action)
-        {
-        }
-
-        public ScheduledTask(Guid id, CrontabSchedule cronExpression, Action<CancellationToken> action)
-        {
-            this.Id = id;
-            this.CrontabSchedule = cronExpression;
             this.action = action;
         }
 
-        public Guid Id { get; }
+        public ScheduledTask(CrontabSchedule crontabSchedule, Action<CancellationToken> action)
+            : base(crontabSchedule)
+        {
+            this.action = action;
+        }
 
-        public CrontabSchedule CrontabSchedule { get; set; }
+        public ScheduledTask(Guid id, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
+            : base(id, crontabSchedule)
+        {
+            this.action = action;
+        }
+
+        public ScheduledTask(string name, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
+            : base(name, crontabSchedule)
+        {
+            this.action = action;
+        }
+
+        public ScheduledTask(Guid id, string name, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
+            : base(id, name, crontabSchedule)
+        {
+            this.action = action;
+        }
 
         public void Run(CancellationToken cancellationToken)
         {

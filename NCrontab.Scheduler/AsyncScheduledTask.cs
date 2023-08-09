@@ -4,25 +4,39 @@ using System.Threading.Tasks;
 
 namespace NCrontab.Scheduler
 {
-    public class AsyncScheduledTask : IAsyncScheduledTask
+    public class AsyncScheduledTask : TaskBase, IAsyncScheduledTask
     {
         private readonly Func<CancellationToken, Task> action;
 
-        public AsyncScheduledTask(CrontabSchedule cronExpression, Func<CancellationToken, Task> action)
-            : this(Guid.NewGuid(), cronExpression, action)
+        public AsyncScheduledTask(string cronExpression, Func<CancellationToken, Task> action)
+            : base(cronExpression)
         {
-        }
-
-        public AsyncScheduledTask(Guid id, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
-        {
-            this.Id = id;
-            this.CrontabSchedule = crontabSchedule;
             this.action = action;
         }
 
-        public Guid Id { get; }
+        public AsyncScheduledTask(CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
+            : base(crontabSchedule)
+        {
+            this.action = action;
+        }
+        
+        public AsyncScheduledTask(Guid id, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
+            : base(id, crontabSchedule)
+        {
+            this.action = action;
+        }
 
-        public CrontabSchedule CrontabSchedule { get; set; }
+        public AsyncScheduledTask(string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
+            : base(name, crontabSchedule)
+        {
+            this.action = action;
+        }
+
+        public AsyncScheduledTask(Guid id, string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
+            : base(id, name, crontabSchedule)
+        {
+            this.action = action;
+        }
 
         public Task RunAsync(CancellationToken cancellationToken)
         {
