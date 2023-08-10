@@ -91,21 +91,21 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
-        public void AddTask(IScheduledTask scheduledTask)
+        public void AddTask(IScheduledTask task)
         {
             this.logger.LogDebug(
-                $"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+                $"AddTask: task={FormatTask(task, this.schedulerOptions.Logging)}, crontabSchedule={task.CrontabSchedule}");
 
-            this.AddTaskInternal(scheduledTask);
+            this.AddTaskInternal(task);
         }
 
         /// <inheritdoc/>
-        public void AddTask(IAsyncScheduledTask scheduledTask)
+        public void AddTask(IAsyncScheduledTask task)
         {
             this.logger.LogDebug(
-                $"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+                $"AddTask: task={FormatTask(task, this.schedulerOptions.Logging)}, crontabSchedule={task.CrontabSchedule}");
 
-            this.AddTaskInternal(scheduledTask);
+            this.AddTaskInternal(task);
         }
 
         private void AddTaskInternal(ITask scheduledTask)
@@ -148,7 +148,7 @@ namespace NCrontab.Scheduler
         /// <inheritdoc/>
         public void UpdateTask(Guid taskId, CrontabSchedule crontabSchedule)
         {
-            this.logger.LogDebug($"UpdateTask: taskId={taskId:B}, crontabSchedule={crontabSchedule}");
+            this.logger.LogDebug($"UpdateTask: taskId={taskId.ToString(this.schedulerOptions.Logging.TaskIdFormatter)}, crontabSchedule={crontabSchedule}");
 
             lock (this.threadLock)
             {
@@ -294,13 +294,14 @@ namespace NCrontab.Scheduler
 
                     var taskIds = tasks.Select(t => t.Id).ToArray();
 
-                    ITask[] scheduledTasksToRun;
+                    // Re-evaluate list of tasks to run. This is necessary since
+                    // the original list of scheduled tasks may be changed in the meantime.
                     lock (this.threadLock)
                     {
-                        scheduledTasksToRun = this.scheduledTasks.Where(m => taskIds.Contains(m.Id)).ToArray();
+                        tasks = this.scheduledTasks.Where(m => taskIds.Contains(m.Id)).ToArray();
                     }
 
-                    if (scheduledTasksToRun.Length > 0)
+                    if (tasks.Count > 0)
                     {
                         var signalTime = this.dateTime.UtcNow;
                         var timingInaccuracy = signalTime - startDateUtc;
