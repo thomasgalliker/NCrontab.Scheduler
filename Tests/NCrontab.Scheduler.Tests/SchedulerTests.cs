@@ -29,13 +29,17 @@ namespace NCrontab.Scheduler.Tests
             this.autoMocker = new AutoMocker();
             this.autoMocker.Use<ILogger<Scheduler>>(new TestOutputHelperLogger<Scheduler>(testOutputHelper));
 
-            var schedulerOptionsMock = this.autoMocker.GetMock<SchedulerOptions>();
+            var schedulerOptions = this.autoMocker.GetMock<SchedulerOptions>();
+            schedulerOptions.SetupGet(o => o.DateTimeKind)
+                .Returns(DateTimeKind.Utc);
+            schedulerOptions.SetupGet(o => o.Logging)
+                .Returns(new LoggingOptions());
+            
+            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
             schedulerOptionsMock.SetupGet(o => o.DateTimeKind)
                 .Returns(DateTimeKind.Utc);
             schedulerOptionsMock.SetupGet(o => o.Logging)
                 .Returns(new LoggingOptions());
-
-            this.autoMocker.Use<ISchedulerOptions>(schedulerOptionsMock.Object);
         }
 
         [Fact]
@@ -474,6 +478,7 @@ namespace NCrontab.Scheduler.Tests
         {
             // Arrange
             var nextCount = 0;
+
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
             dateTimeMock.SetupSequence(d => d.UtcNow)
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
