@@ -249,10 +249,10 @@ namespace NCrontab.Scheduler
 
                     var now = this.GetCurrentDate(this.schedulerOptions.DateTimeKind);
                     var utcNow = now.ToUniversalTime();
-                    var (startDateUtc, tasks) = this.GetScheduledTasksToRunAndHowLongToWait(now);
+                    var (startDateUtc, nextTasks) = this.GetScheduledTasksToRunAndHowLongToWait(now);
 
                     TimeSpan timeToWait;
-                    if (tasks.Count == 0)
+                    if (nextTasks.Count == 0)
                     {
                         timeToWait = TaskHelper.InfiniteTimeSpan;
                         this.logger.LogInformation(
@@ -271,7 +271,7 @@ namespace NCrontab.Scheduler
                             $"Scheduling next event:{Environment.NewLine}" +
                             $" --> nextOccurrence: {displayStartDate:O}{Environment.NewLine}" +
                             $" --> timeToWait: {timeToWait}{Environment.NewLine}" +
-                            $" --> tasks ({tasks.Count}): {string.Join(", ", tasks.Select(t => FormatTask(t, loggingOptions)))}");
+                            $" --> nextTasks ({nextTasks.Count}): {string.Join(", ", nextTasks.Select(t => FormatTask(t, loggingOptions)))}");
                     }
 
                     var isCancellationRequested = await TaskHelper.LongDelay(this.dateTime, timeToWait, this.localCancellationTokenSource.Token)
@@ -292,16 +292,20 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    var taskIds = tasks.Select(t => t.Id).ToArray();
-
                     // Re-evaluate list of tasks to run. This is necessary since
                     // the original list of scheduled tasks may be changed in the meantime.
                     lock (this.threadLock)
                     {
-                        tasks = this.scheduledTasks.Where(m => taskIds.Contains(m.Id)).ToArray();
+                        var newNextTasks = this.scheduledTasks.Where(m => nextTasks.Select(t => t.Id).Contains(m.Id)).ToArray();
+                        //if (newNextTasks.Length != nextTasks.Count)
+                        //{
+                        //    Debugger.Break();
+                        //}
+
+                        nextTasks = newNextTasks;
                     }
 
-                    if (tasks.Count > 0)
+                    if (nextTasks.Count > 0)
                     {
                         var signalTime = this.dateTime.UtcNow;
                         var timingInaccuracy = signalTime - startDateUtc;
@@ -309,11 +313,12 @@ namespace NCrontab.Scheduler
                         this.logger.LogInformation(
                             $"Starting scheduled event:{Environment.NewLine}" +
                             $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
-                            $" --> scheduledTasksToRun ({tasks.Count}): {string.Join(", ", tasks.Select(t => FormatTask(t, loggingOptions)))}");
+                            $" --> nextTasks ({nextTasks.Count}): {string.Join(", ", nextTasks.Select(t => FormatTask(t, loggingOptions)))}");
 
-                        this.RaiseNextEvent(signalTime, taskIds);
+                        var nextTaskIds = nextTasks.Select(t => t.Id).ToArray();
+                        this.RaiseNextEvent(signalTime, nextTaskIds);
 
-                        foreach (var task in tasks)
+                        foreach (var task in nextTasks)
                         {
                             if (this.localCancellationTokenSource.IsCancellationRequested)
                             {
