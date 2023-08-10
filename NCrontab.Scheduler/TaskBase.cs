@@ -31,5 +31,9 @@ namespace NCrontab.Scheduler
 
         public CrontabSchedule CrontabSchedule { get; set; }
 
+        public override string ToString()
+        {
+            return $"{this.GetType().Name}: {this.Name ?? this.Id.ToString()}";
+        }
     }
 }
