@@ -481,10 +481,13 @@ namespace NCrontab.Scheduler.Tests
 
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
             dateTimeMock.SetupSequence(d => d.UtcNow)
-                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
-                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
-                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
-                .Returns(new DateTime(2019, 11, 06, 14, 44, 00));
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 00, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 01, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 02, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 03, DateTimeKind.Utc))
+                ;
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
             scheduler.Next += (sender, args) => { Interlocked.Increment(ref nextCount); };
