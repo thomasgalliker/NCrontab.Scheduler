@@ -8,29 +8,27 @@ namespace NCrontab.Scheduler
         private readonly Action<CancellationToken> action;
 
         public ScheduledTask(string cronExpression, Action<CancellationToken> action)
-            : base(cronExpression)
+            : this(CrontabSchedule.Parse(cronExpression), action)
         {
-            this.action = action;
         }
 
         public ScheduledTask(CrontabSchedule crontabSchedule, Action<CancellationToken> action)
-            : base(crontabSchedule)
+            : this(Guid.NewGuid(), crontabSchedule, action)
         {
-            this.action = action;
         }
 
         public ScheduledTask(Guid id, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
-            : base(id, crontabSchedule)
+            : this(id, null, crontabSchedule, action)
         {
             this.action = action;
         }
-
+        
         public ScheduledTask(string name, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
-            : base(name, crontabSchedule)
+            : this(Guid.NewGuid(), name, crontabSchedule, action)
         {
             this.action = action;
         }
-
+        
         public ScheduledTask(Guid id, string name, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
             : base(id, name, crontabSchedule)
         {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -291,49 +292,60 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    var signalTime = this.dateTime.UtcNow;
-                    var timingInaccuracy = signalTime - startDateUtc;
+                    var taskIds = tasks.Select(t => t.Id).ToArray();
 
-                    this.logger.LogInformation(
-                        $"Starting scheduled event:{Environment.NewLine}" +
-                        $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
-                        $" --> scheduledTasksToRun ({tasks.Count}): {string.Join(", ", tasks.Select(t => FormatTask(t, loggingOptions)))}");
-
-                    this.RaiseNextEvent(signalTime, tasks.Select(t => t.Id).ToArray());
-
-                    foreach (var task in tasks)
+                    ITask[] scheduledTasksToRun;
+                    lock (this.threadLock)
                     {
-                        if (this.localCancellationTokenSource.IsCancellationRequested)
-                        {
-                            this.logger.LogDebug("Cancellation requested");
-                            break;
-                        }
-
-                        this.logger.LogDebug($"Starting task {FormatTask(task, loggingOptions)}...");
-
-                        try
-                        {
-                            if (task is IScheduledTask scheduledTask)
-                            {
-                                scheduledTask.Run(this.localCancellationTokenSource.Token);
-                            }
-
-                            if (task is IAsyncScheduledTask asyncScheduledTask)
-                            {
-                                await asyncScheduledTask.RunAsync(this.localCancellationTokenSource.Token);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            this.logger.LogError(e, $"Task {FormatTask(task, loggingOptions)} failed with exception");
-                        }
+                        scheduledTasksToRun = this.scheduledTasks.Where(m => taskIds.Contains(m.Id)).ToArray();
                     }
 
-                    var endTime = this.dateTime.UtcNow;
-                    var duration = endTime - signalTime;
-                    this.logger.Log(
-                        duration >= DurationWarningThreshold ? LogLevel.Warning : LogLevel.Debug,
-                        $"Execution finished after {duration}");
+                    if (scheduledTasksToRun.Length > 0)
+                    {
+                        var signalTime = this.dateTime.UtcNow;
+                        var timingInaccuracy = signalTime - startDateUtc;
+
+                        this.logger.LogInformation(
+                            $"Starting scheduled event:{Environment.NewLine}" +
+                            $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
+                            $" --> scheduledTasksToRun ({tasks.Count}): {string.Join(", ", tasks.Select(t => FormatTask(t, loggingOptions)))}");
+
+                        this.RaiseNextEvent(signalTime, taskIds);
+
+                        foreach (var task in tasks)
+                        {
+                            if (this.localCancellationTokenSource.IsCancellationRequested)
+                            {
+                                this.logger.LogDebug("Cancellation requested");
+                                break;
+                            }
+
+                            this.logger.LogDebug($"Starting task {FormatTask(task, loggingOptions)}...");
+
+                            try
+                            {
+                                if (task is IScheduledTask scheduledTask)
+                                {
+                                    scheduledTask.Run(this.localCancellationTokenSource.Token);
+                                }
+
+                                if (task is IAsyncScheduledTask asyncScheduledTask)
+                                {
+                                    await asyncScheduledTask.RunAsync(this.localCancellationTokenSource.Token);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                this.logger.LogError(e, $"Task {FormatTask(task, loggingOptions)} failed with exception");
+                            }
+                        }
+
+                        var endTime = this.dateTime.UtcNow;
+                        var duration = endTime - signalTime;
+                        this.logger.Log(
+                            duration >= DurationWarningThreshold ? LogLevel.Warning : LogLevel.Debug,
+                            $"Execution finished after {duration}");
+                    }
                 }
             }
             finally
@@ -355,7 +367,7 @@ namespace NCrontab.Scheduler
                     return !string.IsNullOrEmpty(t.Name)
                         ? $"{t.Id.ToString(loggingOptions.TaskIdFormatter)} {t.Name}"
                         : t.Id.ToString(loggingOptions.TaskIdFormatter);
-                    
+
                 case LogIdentifier.TaskNameAndId:
                     return !string.IsNullOrEmpty(t.Name)
                         ? $"{t.Name} {t.Id.ToString(loggingOptions.TaskIdFormatter)}"

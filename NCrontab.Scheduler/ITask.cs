@@ -11,12 +11,12 @@ namespace NCrontab.Scheduler
     public interface ITask
     {
         /// <summary>
-        /// Unique identifier of a task.
+        /// Unique identifier of the task.
         /// </summary>
         public Guid Id { get; }
 
         /// <summary>
-        /// Display name of a task.
+        /// Display name of the task.
         /// </summary>
         public string Name { get; set; }
 

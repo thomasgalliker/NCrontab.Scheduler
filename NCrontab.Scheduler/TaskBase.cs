@@ -8,23 +8,13 @@ namespace NCrontab.Scheduler
     /// </summary>
     public abstract class TaskBase : ITask
     {
-        protected TaskBase(string cronExpression)
-            : this(Guid.NewGuid(), CrontabSchedule.Parse(cronExpression))
-        {
-        }
-
-        protected TaskBase(CrontabSchedule crontabSchedule)
-            : this(id: Guid.NewGuid(), name: null, crontabSchedule)
-        {
-        }
-
         protected TaskBase(Guid id, CrontabSchedule crontabSchedule)
-            : this(id, name: null, crontabSchedule)
+            : this(id, null, crontabSchedule)
         {
         }
-
+        
         protected TaskBase(string name, CrontabSchedule crontabSchedule)
-            : this(id: Guid.NewGuid(), name, crontabSchedule)
+            : this(Guid.NewGuid(), name, crontabSchedule)
         {
         }
 

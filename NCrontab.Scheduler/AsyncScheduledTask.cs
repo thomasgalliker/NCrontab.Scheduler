@@ -6,41 +6,39 @@ namespace NCrontab.Scheduler
 {
     public class AsyncScheduledTask : TaskBase, IAsyncScheduledTask
     {
-        private readonly Func<CancellationToken, Task> action;
+        private readonly Func<CancellationToken, Task> task;
 
-        public AsyncScheduledTask(string cronExpression, Func<CancellationToken, Task> action)
-            : base(cronExpression)
+        public AsyncScheduledTask(string cronExpression, Func<CancellationToken, Task> task)
+            : this(CrontabSchedule.Parse(cronExpression), task)
         {
-            this.action = action;
         }
 
-        public AsyncScheduledTask(CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
-            : base(crontabSchedule)
+        public AsyncScheduledTask(CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task)
+            : this(Guid.NewGuid(), crontabSchedule, task)
         {
-            this.action = action;
-        }
-        
-        public AsyncScheduledTask(Guid id, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
-            : base(id, crontabSchedule)
-        {
-            this.action = action;
         }
 
-        public AsyncScheduledTask(string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
-            : base(name, crontabSchedule)
+        public AsyncScheduledTask(Guid id, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task)
+            : this(id, null, crontabSchedule, task)
         {
-            this.action = action;
+            this.task = task;
         }
 
-        public AsyncScheduledTask(Guid id, string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
-            : base(id, name, crontabSchedule)
+        public AsyncScheduledTask(string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task)
+            : this(Guid.NewGuid(), name, crontabSchedule, task)
         {
-            this.action = action;
+            this.task = task;
+        }
+
+        public AsyncScheduledTask(Guid id, string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task)
+          : base(id, name, crontabSchedule)
+        {
+            this.task = task;
         }
 
         public Task RunAsync(CancellationToken cancellationToken)
         {
-            return this.action(cancellationToken);
+            return this.task(cancellationToken);
         }
     }
 }
