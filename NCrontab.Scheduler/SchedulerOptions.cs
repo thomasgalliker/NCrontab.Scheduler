@@ -11,9 +11,9 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc />
-        public DateTimeKind DateTimeKind { get; set; }
+        public virtual DateTimeKind DateTimeKind { get; set; }
 
         /// <inheritdoc />
-        public LoggingOptions Logging { get; set; }
+        public virtual LoggingOptions Logging { get; set; }
     }
 }
