@@ -262,7 +262,10 @@ namespace NCrontab.Scheduler
                     {
                         timeToWait = startDateUtc.Subtract(utcNow).RoundUp(MaxDelayRounding);
 
-                        var displayStartDate = this.schedulerOptions.Logging.DateTimeKind == DateTimeKind.Utc ? startDateUtc : startDateUtc.ToLocalTime();
+                        var displayStartDate = this.schedulerOptions.Logging.DateTimeKind == DateTimeKind.Utc
+                            ? startDateUtc
+                            : startDateUtc.ToLocalTime();
+
                         this.logger.LogInformation(
                             $"Scheduling next event:{Environment.NewLine}" +
                             $" --> nextOccurrence: {displayStartDate:O}{Environment.NewLine}" +
@@ -288,22 +291,17 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    {
-
-                    }
-                    var scheduledTasksToRun = tasks.ToArray();
-
                     var signalTime = this.dateTime.UtcNow;
                     var timingInaccuracy = signalTime - startDateUtc;
 
                     this.logger.LogInformation(
                         $"Starting scheduled event:{Environment.NewLine}" +
                         $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
-                        $" --> scheduledTasksToRun ({scheduledTasksToRun.Length}): {string.Join(", ", scheduledTasksToRun.Select(t => FormatTask(t, loggingOptions)))}");
+                        $" --> scheduledTasksToRun ({tasks.Count}): {string.Join(", ", tasks.Select(t => FormatTask(t, loggingOptions)))}");
 
-                    this.RaiseNextEvent(signalTime, scheduledTasksToRun);
+                    this.RaiseNextEvent(signalTime, tasks.Select(t => t.Id).ToArray());
 
-                    foreach (var task in scheduledTasksToRun)
+                    foreach (var task in tasks)
                     {
                         if (this.localCancellationTokenSource.IsCancellationRequested)
                         {
@@ -311,7 +309,7 @@ namespace NCrontab.Scheduler
                             break;
                         }
 
-                        this.logger.LogDebug($"Starting task with Id={task.Id:B}...");
+                        this.logger.LogDebug($"Starting task {FormatTask(task, loggingOptions)}...");
 
                         try
                         {
@@ -327,7 +325,7 @@ namespace NCrontab.Scheduler
                         }
                         catch (Exception e)
                         {
-                            this.logger.LogError(e, $"Task with Id={task.Id:B} failed with exception");
+                            this.logger.LogError(e, $"Task {FormatTask(task, loggingOptions)} failed with exception");
                         }
                     }
 
@@ -441,11 +439,11 @@ namespace NCrontab.Scheduler
 
         public event EventHandler<ScheduledEventArgs> Next;
 
-        private void RaiseNextEvent(DateTime signalTime, params ITask[] tasks)
+        private void RaiseNextEvent(DateTime signalTime, params Guid[] taskIds)
         {
             try
             {
-                this.Next?.Invoke(this, new ScheduledEventArgs(signalTime, tasks.Select(t => t.Id).ToArray()));
+                this.Next?.Invoke(this, new ScheduledEventArgs(signalTime, taskIds));
             }
             catch (Exception e)
             {
