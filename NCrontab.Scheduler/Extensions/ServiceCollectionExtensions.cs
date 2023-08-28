@@ -8,16 +8,18 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddScheduler(this IServiceCollection serviceCollection, IConfiguration configuration)
+        public static IServiceCollection AddScheduler(this IServiceCollection serviceCollection, IConfiguration configuration)
         {
             // Configuration
             serviceCollection.Configure<SchedulerOptions>(configuration);
 
             // Register services
             serviceCollection.AddScheduler();
+
+            return serviceCollection;
         }
 
-        public static void AddScheduler(this IServiceCollection serviceCollection, Action<SchedulerOptions> options = null)
+        public static IServiceCollection AddScheduler(this IServiceCollection serviceCollection, Action<SchedulerOptions> options = null)
         {
             // Configuration
             if (options != null)
@@ -33,6 +35,8 @@ namespace Microsoft.Extensions.DependencyInjection
                     x.GetRequiredService<ILogger<Scheduler>>(),
                     x.GetRequiredService<IOptions<SchedulerOptions>>());
             });
+
+            return serviceCollection;
         }
     }
 }
