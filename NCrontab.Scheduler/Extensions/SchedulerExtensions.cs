@@ -24,9 +24,19 @@ namespace NCrontab.Scheduler
         /// Adds a task to the scheduler.
         /// </summary>
         /// <param name="cronExpression">The cron expression.</param>
+        /// <returns>The task identifier.</returns>
+        public static Guid AddTask(this IScheduler scheduler, string cronExpression)
+        {
+            return scheduler.AddTask(cronExpression, action: null);
+        }
+
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
+        /// <param name="cronExpression">The cron expression.</param>
         /// <param name="action">The callback action which is called whenever the <paramref name="cronExpression"/> is planned to execute.</param>
         /// <returns>The task identifier.</returns>
-        public static Guid AddTask(this IScheduler scheduler, string cronExpression, Action<CancellationToken> action = null)
+        public static Guid AddTask(this IScheduler scheduler, string cronExpression, Action<CancellationToken> action)
         {
             var crontabSchedule = CrontabSchedule.Parse(cronExpression);
             return scheduler.AddTask(crontabSchedule, action);
@@ -36,15 +46,35 @@ namespace NCrontab.Scheduler
         /// Adds a task to the scheduler.
         /// </summary>
         /// <param name="crontabSchedule">The crontab schedule.</param>
+        /// <returns>The task identifier.</returns>
+        public static Guid AddTask(this IScheduler scheduler, CrontabSchedule crontabSchedule)
+        {
+            return scheduler.AddTask(crontabSchedule, action: null);
+        }
+
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
+        /// <param name="crontabSchedule">The crontab schedule.</param>
         /// <param name="action">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
         /// <returns>The task identifier.</returns>
-        public static Guid AddTask(this IScheduler scheduler, CrontabSchedule crontabSchedule, Action<CancellationToken> action = null)
+        public static Guid AddTask(this IScheduler scheduler, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
         {
             var taskId = Guid.NewGuid();
 
             scheduler.AddTask(taskId, crontabSchedule, action);
 
             return taskId;
+        }
+
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
+        /// <param name="taskId">The task identifier.</param>
+        /// <param name="cronExpression">The cron expression.</param>
+        public static void AddTask(this IScheduler scheduler, Guid taskId, string cronExpression)
+        {
+            scheduler.AddTask(taskId, cronExpression, action: null);
         }
 
         /// <summary>
@@ -64,8 +94,18 @@ namespace NCrontab.Scheduler
         /// </summary>
         /// <param name="taskId">The task identifier.</param>
         /// <param name="crontabSchedule">The crontab schedule.</param>
+        public static void AddTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule)
+        {
+            scheduler.AddTask(taskId, crontabSchedule, action: null);
+        }
+
+        /// <summary>
+        /// Adds a task to the scheduler.
+        /// </summary>
+        /// <param name="taskId">The task identifier.</param>
+        /// <param name="crontabSchedule">The crontab schedule.</param>
         /// <param name="action">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
-        public static void AddTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule, Action<CancellationToken> action = null)
+        public static void AddTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule, Action<CancellationToken> action)
         {
             var scheduledTask = new ScheduledTask(taskId, crontabSchedule, action);
             scheduler.AddTask(scheduledTask);
@@ -77,7 +117,7 @@ namespace NCrontab.Scheduler
         /// <param name="cronExpression">The cron expression.</param>
         /// <param name="task">The callback action which is called whenever the <paramref name="cronExpression"/> is planned to execute.</param>
         /// <returns>The task identifier.</returns>
-        public static Guid AddTask(this IScheduler scheduler, string cronExpression, Func<CancellationToken, Task> task = null)
+        public static Guid AddTask(this IScheduler scheduler, string cronExpression, Func<CancellationToken, Task> task)
         {
             var crontabSchedule = CrontabSchedule.Parse(cronExpression);
             return scheduler.AddTask(crontabSchedule, task);
@@ -89,7 +129,7 @@ namespace NCrontab.Scheduler
         /// <param name="crontabSchedule">The crontab schedule.</param>
         /// <param name="task">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
         /// <returns>The task identifier.</returns>
-        public static Guid AddTask(this IScheduler scheduler, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task = null)
+        public static Guid AddTask(this IScheduler scheduler, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task)
         {
             var taskId = Guid.NewGuid();
 
@@ -104,7 +144,7 @@ namespace NCrontab.Scheduler
         /// <param name="taskId">The task identifier.</param>
         /// <param name="cronExpression">The cron expression.</param>
         /// <param name="task">The callback action which is called whenever the <paramref name="cronExpression"/> is planned to execute.</param>
-        public static void AddTask(this IScheduler scheduler, Guid taskId, string cronExpression, Func<CancellationToken, Task> task = null)
+        public static void AddTask(this IScheduler scheduler, Guid taskId, string cronExpression, Func<CancellationToken, Task> task)
         {
             var crontabSchedule = CrontabSchedule.Parse(cronExpression);
             scheduler.AddTask(taskId, crontabSchedule, task);
@@ -116,7 +156,7 @@ namespace NCrontab.Scheduler
         /// <param name="taskId">The task identifier.</param>
         /// <param name="crontabSchedule">The crontab schedule.</param>
         /// <param name="task">The callback action which is called whenever the <paramref name="crontabSchedule"/> is planned to execute.</param>
-        public static void AddTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task = null)
+        public static void AddTask(this IScheduler scheduler, Guid taskId, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task)
         {
             var asyncScheduledTask = new AsyncScheduledTask(taskId, crontabSchedule, task);
             scheduler.AddTask(asyncScheduledTask);
