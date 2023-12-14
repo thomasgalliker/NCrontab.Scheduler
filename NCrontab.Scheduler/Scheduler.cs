@@ -392,6 +392,7 @@ namespace NCrontab.Scheduler
                 : this.dateTime.UtcNow;
         }
 
+        /// <inheritdoc/>
         public bool IsRunning
         {
             get => this.isRunning;
@@ -455,6 +456,7 @@ namespace NCrontab.Scheduler
             }
         }
 
+        /// <inheritdoc/>
         public event EventHandler<ScheduledEventArgs> Next;
 
         private void RaiseNextEvent(DateTime signalTime, params Guid[] taskIds)
@@ -469,6 +471,7 @@ namespace NCrontab.Scheduler
             }
         }
 
+        /// <inheritdoc/>
         public void Stop()
         {
             this.logger.LogInformation("Stopping...");
