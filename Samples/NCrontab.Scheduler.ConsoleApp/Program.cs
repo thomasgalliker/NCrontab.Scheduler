@@ -11,6 +11,14 @@ namespace NCrontab.Scheduler.ConsoleApp
                 $"Scheduler ConsoleApp version {typeof(Program).Assembly.GetName().Version} {Environment.NewLine}" +
                 $"Copyright(C) superdev GmbH. All rights reserved.{Environment.NewLine}");
 
+            var cancellationSource = new CancellationTokenSource();
+
+            Console.CancelKeyPress += (_, eventArgs) =>
+            {
+                eventArgs.Cancel = true;
+                cancellationSource.Cancel();
+            };
+
             var dateTimeFormat = CultureInfo.CurrentCulture.DateTimeFormat;
             using var loggerFactory = LoggerFactory.Create(builder =>
             {
@@ -74,9 +82,7 @@ namespace NCrontab.Scheduler.ConsoleApp
 
             // Finally, start the scheduler and observe the action callbacks
             // as well as the Next event handler.
-            await scheduler.StartAsync();
-
-            Console.ReadLine();
+            await scheduler.StartAsync(cancellationSource.Token);
         }
 
         private static void OnSchedulerNext(object? sender, ScheduledEventArgs e)
