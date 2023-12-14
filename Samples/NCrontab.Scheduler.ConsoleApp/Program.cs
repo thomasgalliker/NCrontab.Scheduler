@@ -11,6 +11,14 @@ namespace NCrontab.Scheduler.ConsoleApp
                 $"Scheduler ConsoleApp version {typeof(Program).Assembly.GetName().Version} {Environment.NewLine}" +
                 $"Copyright(C) superdev GmbH. All rights reserved.{Environment.NewLine}");
 
+            var cancellationSource = new CancellationTokenSource();
+
+            Console.CancelKeyPress += (_, eventArgs) =>
+            {
+                eventArgs.Cancel = true;
+                cancellationSource.Cancel();
+            };
+
             var dateTimeFormat = CultureInfo.CurrentCulture.DateTimeFormat;
             using var loggerFactory = LoggerFactory.Create(builder =>
             {
@@ -31,7 +39,12 @@ namespace NCrontab.Scheduler.ConsoleApp
             ILogger<Scheduler> logger = loggerFactory.CreateLogger<Scheduler>();
             ISchedulerOptions schedulerOptions = new SchedulerOptions
             {
-                DateTimeKind = DateTimeKind.Utc
+                DateTimeKind = DateTimeKind.Utc,
+                Logging = new LoggingOptions
+                {
+                    LogIdentifier = LogIdentifier.TaskName,
+                    DateTimeKind = DateTimeKind.Local
+                },
             };
             IScheduler scheduler = new Scheduler(logger, schedulerOptions);
 
@@ -39,10 +52,13 @@ namespace NCrontab.Scheduler.ConsoleApp
             // for all tasks that are executed.
             scheduler.Next += OnSchedulerNext;
 
-            // Add tasks with different cron schedules and actions. 
-            scheduler.AddTask(
+            // Add tasks with different cron schedules and actions.
+
+            var scheduleTask = new ScheduledTask(
+                name: "MinutelyTask",
                 crontabSchedule: CrontabSchedule.Parse("* * * * *"),
                 action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs every minutes"); });
+            scheduler.AddTask(scheduleTask);
 
             scheduler.AddTask(
                 crontabSchedule: CrontabSchedule.Parse("*/2 * * * *"),
@@ -66,9 +82,7 @@ namespace NCrontab.Scheduler.ConsoleApp
 
             // Finally, start the scheduler and observe the action callbacks
             // as well as the Next event handler.
-            await scheduler.StartAsync();
-
-            Console.ReadLine();
+            await scheduler.StartAsync(cancellationSource.Token);
         }
 
         private static void OnSchedulerNext(object? sender, ScheduledEventArgs e)

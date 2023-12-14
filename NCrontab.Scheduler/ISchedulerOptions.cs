@@ -12,5 +12,7 @@ namespace NCrontab.Scheduler
         /// consistent behavior across daylight savings time changes.
         /// Log messages are formatted with UTC timestamps too.</remarks>
         public DateTimeKind DateTimeKind { get; set; }
+
+        public LoggingOptions Logging { get; set; }
     }
 }

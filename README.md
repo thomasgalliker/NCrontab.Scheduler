@@ -73,8 +73,6 @@ Following options are available:
 Use method `AddTask` with all the provided convenience overloads to add tasks to the scheduler.
 A task is composed of a cron pattern which specifies the recurrance interval and an action (for synchronous callbacks) or a task (for asynchronous callbacks).
 
-Tasks can be added to the scheduler either before or after the scheduler has been started.
-
 ```C#
 scheduler.AddTask(
     cronExpression: CrontabSchedule.Parse("* * * * *"),
@@ -96,6 +94,11 @@ scheduler.AddTask(
     cronExpression: CrontabSchedule.Parse("0 0 1 1 *"),
     action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs on Januar 1 every year"); });    
 ```
+
+A task is identified by its Id or its Name. The Id is a Guid which can be user-defined. If it's not set, a rand Guid is used. The Name property is optional and will remain unset if it's not set. The Name property is used in log messages, if the appropriate option is enabled. 
+
+Tasks can be added to the scheduler either before or after the scheduler has been started.
+
 A very helpful resource for creating cron expression is https://crontab.guru.
 
 ### Starting and Stopping

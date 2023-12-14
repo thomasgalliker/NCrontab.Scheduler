@@ -13,6 +13,8 @@ namespace NCrontab.Scheduler
 
         public Guid Id => this.taskId;
 
+        public string Name { get; set; }
+
         public CrontabSchedule CrontabSchedule { get; set; }
     }
 }
