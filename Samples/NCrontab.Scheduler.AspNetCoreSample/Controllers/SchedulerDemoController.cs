@@ -17,12 +17,35 @@ namespace NCrontab.Scheduler.AspNetCoreSample.Controllers
             this.scheduler = scheduler;
         }
 
-        [HttpPost("addtask")]
-        public void AddTaskEveryMinute(string cronExpression = "* * * * *")
+        [HttpGet("start")]
+        public void Start()
         {
-            this.scheduler.AddTask(
-              crontabSchedule: CrontabSchedule.Parse("* * * * *"),
-              action: ct => { this.logger.LogInformation($"{DateTime.Now:O} -> Task runs every minutes"); });
+            this.scheduler.Start();
+        }
+
+        [HttpGet("stop")]
+        public void Stop()
+        {
+            this.scheduler.Stop();
+        }
+
+        [HttpPost("addtask")]
+        public Guid AddTask(string name, string cronExpression = "* * * * *")
+        {
+            var scheduledTask = new ScheduledTask(
+                name,
+                CrontabSchedule.Parse(cronExpression),
+                action: ct => { this.logger.LogInformation($"Action executed!"); });
+
+            this.scheduler.AddTask(scheduledTask);
+
+            return scheduledTask.Id;
+        }
+
+        [HttpDelete("removetask")]
+        public bool RemoveTask(Guid taskId)
+        {
+            return this.scheduler.RemoveTask(taskId);
         }
 
         [HttpDelete("removealltasks")]

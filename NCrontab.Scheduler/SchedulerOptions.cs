@@ -7,9 +7,13 @@ namespace NCrontab.Scheduler
         public SchedulerOptions()
         {
             this.DateTimeKind = DateTimeKind.Utc;
+            this.Logging = new LoggingOptions();
         }
 
         /// <inheritdoc />
-        public DateTimeKind DateTimeKind { get; set; }
+        public virtual DateTimeKind DateTimeKind { get; set; }
+
+        /// <inheritdoc />
+        public virtual LoggingOptions Logging { get; set; }
     }
 }
