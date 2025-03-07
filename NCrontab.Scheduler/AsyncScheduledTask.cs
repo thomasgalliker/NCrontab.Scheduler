@@ -4,29 +4,41 @@ using System.Threading.Tasks;
 
 namespace NCrontab.Scheduler
 {
-    public class AsyncScheduledTask : IAsyncScheduledTask
+    public class AsyncScheduledTask : TaskBase, IAsyncScheduledTask
     {
-        private readonly Func<CancellationToken, Task> action;
+        private readonly Func<CancellationToken, Task> task;
 
-        public AsyncScheduledTask(CrontabSchedule cronExpression, Func<CancellationToken, Task> action)
-            : this(Guid.NewGuid(), cronExpression, action)
+        public AsyncScheduledTask(string cronExpression, Func<CancellationToken, Task> task = null)
+            : this(CrontabSchedule.Parse(cronExpression), task)
         {
         }
 
-        public AsyncScheduledTask(Guid id, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> action)
+        public AsyncScheduledTask(CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task = null)
+            : this(Guid.NewGuid(), crontabSchedule, task)
         {
-            this.Id = id;
-            this.CrontabSchedule = crontabSchedule;
-            this.action = action;
         }
 
-        public Guid Id { get; }
+        public AsyncScheduledTask(Guid id, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task = null)
+            : this(id, null, crontabSchedule, task)
+        {
+            this.task = task;
+        }
 
-        public CrontabSchedule CrontabSchedule { get; set; }
+        public AsyncScheduledTask(string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task = null)
+            : this(Guid.NewGuid(), name, crontabSchedule, task)
+        {
+            this.task = task;
+        }
+
+        public AsyncScheduledTask(Guid id, string name, CrontabSchedule crontabSchedule, Func<CancellationToken, Task> task = null)
+          : base(id, name, crontabSchedule)
+        {
+            this.task = task;
+        }
 
         public Task RunAsync(CancellationToken cancellationToken)
         {
-            return this.action(cancellationToken);
+            return this.task != null ? this.task(cancellationToken) : Task.CompletedTask;
         }
     }
 }

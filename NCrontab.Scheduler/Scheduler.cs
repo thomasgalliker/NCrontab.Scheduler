@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -90,21 +91,21 @@ namespace NCrontab.Scheduler
         }
 
         /// <inheritdoc/>
-        public void AddTask(IScheduledTask scheduledTask)
+        public void AddTask(IScheduledTask task)
         {
             this.logger.LogDebug(
-                $"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+                $"AddTask: task={FormatTask(task, this.schedulerOptions.Logging)}, crontabSchedule={task.CrontabSchedule}");
 
-            this.AddTaskInternal(scheduledTask);
+            this.AddTaskInternal(task);
         }
 
         /// <inheritdoc/>
-        public void AddTask(IAsyncScheduledTask scheduledTask)
+        public void AddTask(IAsyncScheduledTask task)
         {
             this.logger.LogDebug(
-                $"AddTask: taskId={scheduledTask.Id:B}, crontabSchedule={scheduledTask.CrontabSchedule}");
+                $"AddTask: task={FormatTask(task, this.schedulerOptions.Logging)}, crontabSchedule={task.CrontabSchedule}");
 
-            this.AddTaskInternal(scheduledTask);
+            this.AddTaskInternal(task);
         }
 
         private void AddTaskInternal(ITask scheduledTask)
@@ -147,7 +148,7 @@ namespace NCrontab.Scheduler
         /// <inheritdoc/>
         public void UpdateTask(Guid taskId, CrontabSchedule crontabSchedule)
         {
-            this.logger.LogDebug($"UpdateTask: taskId={taskId:B}, crontabSchedule={crontabSchedule}");
+            this.logger.LogDebug($"UpdateTask: taskId={taskId.ToString(this.schedulerOptions.Logging.TaskIdFormatter)}, crontabSchedule={crontabSchedule}");
 
             lock (this.threadLock)
             {
@@ -244,12 +245,14 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    var now = this.GetCurrentDate();
+                    var loggingOptions = this.schedulerOptions.Logging;
+
+                    var now = this.GetCurrentDate(this.schedulerOptions.DateTimeKind);
                     var utcNow = now.ToUniversalTime();
-                    var (startDateUtc, taskIds) = this.GetScheduledTasksToRunAndHowLongToWait(now);
+                    var (startDateUtc, nextTasks) = this.GetScheduledTasksToRunAndHowLongToWait(now);
 
                     TimeSpan timeToWait;
-                    if (taskIds.Count == 0)
+                    if (nextTasks.Count == 0)
                     {
                         timeToWait = TaskHelper.InfiniteTimeSpan;
                         this.logger.LogInformation(
@@ -260,11 +263,15 @@ namespace NCrontab.Scheduler
                     {
                         timeToWait = startDateUtc.Subtract(utcNow).RoundUp(MaxDelayRounding);
 
+                        var displayStartDate = this.schedulerOptions.Logging.DateTimeKind == DateTimeKind.Utc
+                            ? startDateUtc
+                            : startDateUtc.ToLocalTime();
+
                         this.logger.LogInformation(
                             $"Scheduling next event:{Environment.NewLine}" +
-                            $" --> nextOccurrence: {startDateUtc:O}{Environment.NewLine}" +
+                            $" --> nextOccurrence: {displayStartDate:O}{Environment.NewLine}" +
                             $" --> timeToWait: {timeToWait}{Environment.NewLine}" +
-                            $" --> taskIds ({taskIds.Count}): {string.Join(", ", taskIds.Select(id => $"{id:B}"))}");
+                            $" --> nextTasks ({nextTasks.Count}): {string.Join(", ", nextTasks.Select(t => FormatTask(t, loggingOptions)))}");
                     }
 
                     var isCancellationRequested = await TaskHelper.LongDelay(this.dateTime, timeToWait, this.localCancellationTokenSource.Token)
@@ -285,24 +292,33 @@ namespace NCrontab.Scheduler
                         return;
                     }
 
-                    ITask[] scheduledTasksToRun;
+                    // Re-evaluate list of tasks to run. This is necessary since
+                    // the original list of scheduled tasks may be changed in the meantime.
                     lock (this.threadLock)
                     {
-                        scheduledTasksToRun = this.scheduledTasks.Where(m => taskIds.Contains(m.Id)).ToArray();
+                        var newNextTasks = this.scheduledTasks.Where(m => nextTasks.Select(t => t.Id).Contains(m.Id)).ToArray();
+                        //if (newNextTasks.Length != nextTasks.Count)
+                        //{
+                        //    Debugger.Break();
+                        //}
+
+                        nextTasks = newNextTasks;
                     }
 
-                    if (scheduledTasksToRun.Length > 0)
+                    if (nextTasks.Count > 0)
                     {
                         var signalTime = this.dateTime.UtcNow;
                         var timingInaccuracy = signalTime - startDateUtc;
+
                         this.logger.LogInformation(
                             $"Starting scheduled event:{Environment.NewLine}" +
                             $" --> signalTime: {signalTime:O} (deviation: {timingInaccuracy.TotalMilliseconds}ms){Environment.NewLine}" +
-                            $" --> scheduledTasksToRun ({scheduledTasksToRun.Length}): {string.Join(", ", scheduledTasksToRun.Select(t => $"{t.Id:B}"))}");
+                            $" --> nextTasks ({nextTasks.Count}): {string.Join(", ", nextTasks.Select(t => FormatTask(t, loggingOptions)))}");
 
-                        this.RaiseNextEvent(signalTime, scheduledTasksToRun);
+                        var nextTaskIds = nextTasks.Select(t => t.Id).ToArray();
+                        this.RaiseNextEvent(signalTime, nextTaskIds);
 
-                        foreach (var task in scheduledTasksToRun)
+                        foreach (var task in nextTasks)
                         {
                             if (this.localCancellationTokenSource.IsCancellationRequested)
                             {
@@ -310,7 +326,7 @@ namespace NCrontab.Scheduler
                                 break;
                             }
 
-                            this.logger.LogDebug($"Starting task with Id={task.Id:B}...");
+                            this.logger.LogDebug($"Starting task {FormatTask(task, loggingOptions)}...");
 
                             try
                             {
@@ -326,7 +342,7 @@ namespace NCrontab.Scheduler
                             }
                             catch (Exception e)
                             {
-                                this.logger.LogError(e, $"Task with Id={task.Id:B} failed with exception");
+                                this.logger.LogError(e, $"Task {FormatTask(task, loggingOptions)} failed with exception");
                             }
                         }
 
@@ -344,13 +360,39 @@ namespace NCrontab.Scheduler
             }
         }
 
-        private DateTime GetCurrentDate()
+        private static string FormatTask(ITask t, LoggingOptions loggingOptions)
         {
-            return this.schedulerOptions.DateTimeKind == DateTimeKind.Local
-                ? this.dateTime.Now //new DateTime(2023, 10, 29, 0, 0, 0, DateTimeKind.Local) // this.dateTime.Now 
+            switch (loggingOptions.LogIdentifier)
+            {
+                case LogIdentifier.TaskName:
+                    return !string.IsNullOrEmpty(t.Name)
+                        ? t.Name
+                        : t.Id.ToString(loggingOptions.TaskIdFormatter);
+
+                case LogIdentifier.TaskIdAndName:
+                    return !string.IsNullOrEmpty(t.Name)
+                        ? $"{t.Id.ToString(loggingOptions.TaskIdFormatter)} {t.Name}"
+                        : t.Id.ToString(loggingOptions.TaskIdFormatter);
+
+                case LogIdentifier.TaskNameAndId:
+                    return !string.IsNullOrEmpty(t.Name)
+                        ? $"{t.Name} {t.Id.ToString(loggingOptions.TaskIdFormatter)}"
+                        : t.Id.ToString(loggingOptions.TaskIdFormatter);
+
+                case LogIdentifier.TaskId:
+                default:
+                    return t.Id.ToString(loggingOptions.TaskIdFormatter);
+            }
+        }
+
+        private DateTime GetCurrentDate(DateTimeKind dateTimeKind)
+        {
+            return dateTimeKind == DateTimeKind.Local
+                ? this.dateTime.Now
                 : this.dateTime.UtcNow;
         }
 
+        /// <inheritdoc/>
         public bool IsRunning
         {
             get => this.isRunning;
@@ -364,10 +406,10 @@ namespace NCrontab.Scheduler
             }
         }
 
-        private (DateTime StartDateUtc, IReadOnlyCollection<Guid> TaskIds) GetScheduledTasksToRunAndHowLongToWait(DateTime now)
+        private (DateTime StartDateUtc, IReadOnlyCollection<ITask> Tasks) GetScheduledTasksToRunAndHowLongToWait(DateTime now)
         {
             var lowestNextTimeToRun = DateTime.MaxValue;
-            var lowestIds = new List<Guid>();
+            var lowestTasks = new List<ITask>();
 
             lock (this.threadLock)
             {
@@ -381,18 +423,18 @@ namespace NCrontab.Scheduler
 
                     if (nextTimeToRun < lowestNextTimeToRun)
                     {
-                        lowestIds.Clear();
-                        lowestIds.Add(scheduledTask.Id);
+                        lowestTasks.Clear();
+                        lowestTasks.Add(scheduledTask);
                         lowestNextTimeToRun = nextTimeToRun;
                     }
                     else if (nextTimeToRun == lowestNextTimeToRun)
                     {
-                        lowestIds.Add(scheduledTask.Id);
+                        lowestTasks.Add(scheduledTask);
                     }
                 }
             }
 
-            return (lowestNextTimeToRun, lowestIds);
+            return (lowestNextTimeToRun, lowestTasks);
         }
 
         private void ResetScheduler()
@@ -414,13 +456,14 @@ namespace NCrontab.Scheduler
             }
         }
 
+        /// <inheritdoc/>
         public event EventHandler<ScheduledEventArgs> Next;
 
-        private void RaiseNextEvent(DateTime signalTime, params ITask[] tasks)
+        private void RaiseNextEvent(DateTime signalTime, params Guid[] taskIds)
         {
             try
             {
-                this.Next?.Invoke(this, new ScheduledEventArgs(signalTime, tasks.Select(t => t.Id).ToArray()));
+                this.Next?.Invoke(this, new ScheduledEventArgs(signalTime, taskIds));
             }
             catch (Exception e)
             {
@@ -428,6 +471,7 @@ namespace NCrontab.Scheduler
             }
         }
 
+        /// <inheritdoc/>
         public void Stop()
         {
             this.logger.LogInformation("Stopping...");
