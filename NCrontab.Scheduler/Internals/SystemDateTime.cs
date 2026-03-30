@@ -8,11 +8,4 @@ namespace NCrontab.Scheduler.Internals
 
         public DateTime UtcNow => DateTime.UtcNow;
     }
-    
-    public class DateTimePreciseWrapper : IDateTime
-    {
-        public DateTime Now => DateTimePrecise.Now;
-
-        public DateTime UtcNow => DateTimePrecise.UtcNow;
-    }
 }

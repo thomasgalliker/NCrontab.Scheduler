@@ -40,14 +40,38 @@ Alternatively, you can register/resolve `IScheduler` in Microsoft's DI framework
 serviceCollection.AddScheduler();
 ```
 
-This `AddScheduler` call registers `IScheduler` and `ISchedulerFactory` as singleton services which can now be injected in your code.
+This `AddScheduler` call regist
+ers `IScheduler` and `ISchedulerFactory` as singleton services which can now be injected in your code.
 If you prefer to have multiple instances of `IScheduler` across your code, inject `ISchedulerFactory` instead and use the Create method to create new instances of `IScheduler`.
+
+### Scheduler Options
+The `Scheduler` class has an extra parameter `ISchedulerOptions` which allows to override the default configuration of the scheduler.
+If you use dependency injection, you can also configure the scheduler using the `AddScheduler` method:
+```C#
+serviceCollection.AddScheduler(o =>
+{
+    o.DateTimeKind = DateTimeKind.Utc;
+});
+```
+
+Scheduler options can also be read from appSettings.json. Create a new section in your appSettings.json.
+```XML
+"NCrontab.Scheduler": {
+    "DateTimeKind": "Utc"
+},
+```
+Refer to the new configuration section when you call `AddScheduler`:
+```C#
+var configurationSection = builder.Configuration.GetSection("NCrontab.Scheduler");
+builder.Services.AddScheduler(configurationSection);
+```
+
+Following options are available:
+- **DateTimeKind**: Interprets the given cron expressions as UTC or local time. Default is UTC.
 
 ### Add Scheduled Tasks
 Use method `AddTask` with all the provided convenience overloads to add tasks to the scheduler.
 A task is composed of a cron pattern which specifies the recurrance interval and an action (for synchronous callbacks) or a task (for asynchronous callbacks).
-
-Tasks can be added to the scheduler either before or after the scheduler has been started.
 
 ```C#
 scheduler.AddTask(
@@ -70,6 +94,11 @@ scheduler.AddTask(
     cronExpression: CrontabSchedule.Parse("0 0 1 1 *"),
     action: ct => { Console.WriteLine($"{DateTime.Now:O} -> Task runs on Januar 1 every year"); });    
 ```
+
+A task is identified by its Id or its Name. The Id is a Guid which can be user-defined. If it's not set, a rand Guid is used. The Name property is optional and will remain unset if it's not set. The Name property is used in log messages, if the appropriate option is enabled. 
+
+Tasks can be added to the scheduler either before or after the scheduler has been started.
+
 A very helpful resource for creating cron expression is https://crontab.guru.
 
 ### Starting and Stopping
@@ -112,6 +141,7 @@ Each task run is isolated from all other scheduled tasks. The success or failure
 This project is Copyright &copy; 2023 [Thomas Galliker](https://ch.linkedin.com/in/thomasgalliker). Free for non-commercial use. For commercial use please contact the author.
 
 ## Links
+- https://crontab.guru
 - https://github.com/ilromali/reverse-proxy/blob/72bd65b9aa405f19390e1862f68d6631b599eb73/src/ReverseProxy/Service/Management/EntityActionScheduler.cs
 - https://edurev.in/studytube/Real-Time-Task-Scheduling-1/936b294c-d0f9-4e2d-8b05-7e41ac01a8f3_t
 - https://lectures.tik.ee.ethz.ch/es/slides/6_RealTimeScheduling.pdf

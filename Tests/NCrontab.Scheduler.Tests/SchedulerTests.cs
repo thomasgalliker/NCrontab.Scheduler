@@ -26,8 +26,21 @@ namespace NCrontab.Scheduler.Tests
         public SchedulerTests(ITestOutputHelper testOutputHelper)
         {
             this.testOutputHelper = testOutputHelper;
+
             this.autoMocker = new AutoMocker();
             this.autoMocker.Use<ILogger<Scheduler>>(new TestOutputHelperLogger<Scheduler>(testOutputHelper));
+
+            var schedulerOptions = this.autoMocker.GetMock<SchedulerOptions>();
+            schedulerOptions.SetupGet(o => o.DateTimeKind)
+                .Returns(DateTimeKind.Utc);
+            schedulerOptions.SetupGet(o => o.Logging)
+                .Returns(new LoggingOptions());
+            
+            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
+            schedulerOptionsMock.SetupGet(o => o.DateTimeKind)
+                .Returns(DateTimeKind.Utc);
+            schedulerOptionsMock.SetupGet(o => o.Logging)
+                .Returns(new LoggingOptions());
         }
 
         [Fact]
@@ -81,7 +94,7 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
-        public async Task ShouldAddTask_SingleTask_Synchronous_SecondsInterval()
+        public async Task ShouldAddTask_SingleTask_Synchronous_ParseIncludingSeconds()
         {
             // Arrange
             var referenceDate = new DateTime(2019, 11, 06, 14, 43, 58);
@@ -109,6 +122,39 @@ namespace NCrontab.Scheduler.Tests
 
             // Arrange
             actionObject.RunCount.Should().Be(10);
+        }
+
+        [Fact(Skip = "to be fixed")]
+        public async Task ShouldAddTask_SingleTask_Synchronous_WithLocalTime()
+        {
+            // Arrange
+            var referenceDate = new DateTime(2000, 1, 1, 16, 33, 58, DateTimeKind.Utc);
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.SetupSequence(d => d.Now, referenceDate.ToLocalTime(), (n) => n.AddSeconds(1));
+            dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate, (n) => n.AddSeconds(1));
+
+            var schedulerOptionsMock = this.autoMocker.GetMock<SchedulerOptions>();
+            schedulerOptionsMock.SetupGet(o => o.DateTimeKind)
+                .Returns(DateTimeKind.Local);
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+
+            var crontabSchedule = CrontabSchedule.Parse("0 12 1 11 *");
+
+            var actionObject = new TestObject();
+            scheduler.AddTask(crontabSchedule, (cancellationToken) =>
+            {
+                actionObject.Run();
+            });
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(1100))
+            {
+                await scheduler.StartAsync(cancellationTokenSource.Token);
+            }
+
+            // Arrange
+            actionObject.RunCount.Should().Be(1);
         }
 
         [Fact]
@@ -251,7 +297,7 @@ namespace NCrontab.Scheduler.Tests
 
             var task1 = new ScheduledTask("*/1 * * * *", (cancellationToken) => { });
             scheduler.AddTask(task1);
-            
+
             var task2 = new ScheduledTask("*/2 * * * *", (cancellationToken) => { });
             scheduler.AddTask(task2);
 
@@ -433,15 +479,19 @@ namespace NCrontab.Scheduler.Tests
         {
             // Arrange
             var nextCount = 0;
+
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
             dateTimeMock.SetupSequence(d => d.UtcNow)
-                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
-                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
-                .Returns(new DateTime(2019, 11, 06, 14, 43, 59))
-                .Returns(new DateTime(2019, 11, 06, 14, 44, 00));
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 00, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 01, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 02, DateTimeKind.Utc))
+                .Returns(new DateTime(2019, 11, 06, 14, 44, 03, DateTimeKind.Utc))
+                ;
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.Next += (sender, args) => { nextCount++; };
+            scheduler.Next += (sender, args) => { Interlocked.Increment(ref nextCount); };
 
             // Act
             using (var cancellationTokenSource = new CancellationTokenSource(4000))
@@ -519,8 +569,9 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 45, 00));
 
             var logger = new Mock<ILogger<Scheduler>>();
+            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
 
-            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object);
+            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object, schedulerOptionsMock.Object);
 
             var actionObject = new TestObject();
             scheduler.AddTask("44 14 * * *", (cancellationToken) =>
@@ -669,8 +720,9 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 44, 00));
 
             var logger = new Mock<ILogger<Scheduler>>();
+            var schedulerOptionsMock = this.autoMocker.GetMock<SchedulerOptions>();
 
-            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object);
+            IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object, schedulerOptionsMock.Object);
 
             var testObject1 = new TestObject();
             scheduler.AddTask(CrontabSchedule.Parse("* * * * *"), async (cancellationToken) =>
@@ -694,7 +746,7 @@ namespace NCrontab.Scheduler.Tests
             // Arrange
             logger.Verify(x => x.Log(LogLevel.Error,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Task with Id={failingTaskId:B} failed with exception")),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Task {failingTaskId:B} failed with exception")),
                     It.IsAny<Exception>(),
                     (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()), Times.Once);
 

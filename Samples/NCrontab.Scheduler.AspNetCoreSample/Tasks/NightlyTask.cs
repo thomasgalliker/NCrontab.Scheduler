@@ -1,17 +1,14 @@
 ﻿namespace NCrontab.Scheduler.AspNetCoreSample.Tasks
 {
-    public class NightlyTask : IScheduledTask
+    public class NightlyTask : TaskBase, IScheduledTask
     {
         private readonly ILogger logger;
 
         public NightlyTask(ILogger<NightlyTask> logger)
+            : base("NightlyTask", CrontabSchedule.Parse("0 0 * * *"))
         {
             this.logger = logger;
         }
-
-        public Guid Id { get; } = Guid.NewGuid();
-
-        public CrontabSchedule CrontabSchedule { get; set; } = CrontabSchedule.Parse("0 0 * * *");
 
         public void Run(CancellationToken cancellationToken)
         {
