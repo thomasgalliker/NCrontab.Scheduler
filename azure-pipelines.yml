@@ -82,6 +82,7 @@ steps:
       command: restore
       projects: |
         NCrontab.Scheduler/**/*.csproj
+        NCrontab.Scheduler.AspNetCore/**/*.csproj
         **/*.Tests.csproj
 
   - task: DotNetCoreCLI@2
@@ -89,6 +90,7 @@ steps:
     inputs:
       projects: |
         NCrontab.Scheduler/**/*.csproj
+        NCrontab.Scheduler.AspNetCore/**/*.csproj
         **/*.Tests.csproj
       arguments: '--no-restore --configuration $(buildConfiguration)'
 
