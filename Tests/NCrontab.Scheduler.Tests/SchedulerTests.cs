@@ -223,6 +223,50 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
+        public void ShouldThrowWhenAddingTaskWithDuplicateId_Synchronous()
+        {
+            // Arrange
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.Setup(d => d.UtcNow)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+            var taskId = Guid.NewGuid();
+
+            scheduler.AddTask(taskId, "* * * * *", ct => { });
+
+            // Act
+            Action act = () => scheduler.AddTask(taskId, "*/2 * * * *", ct => { });
+
+            // Assert
+            act.Should()
+                .Throw<InvalidOperationException>()
+                .WithMessage($"AddTask: task with Id={taskId} already exists.");
+        }
+
+        [Fact]
+        public void ShouldThrowWhenAddingTaskWithDuplicateId_Asynchronous()
+        {
+            // Arrange
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.Setup(d => d.UtcNow)
+                .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+            var taskId = Guid.NewGuid();
+
+            scheduler.AddTask(taskId, CrontabSchedule.Parse("* * * * *"), ct => Task.CompletedTask);
+
+            // Act
+            Action act = () => scheduler.AddTask(taskId, CrontabSchedule.Parse("*/2 * * * *"), ct => Task.CompletedTask);
+
+            // Assert
+            act.Should()
+                .Throw<InvalidOperationException>()
+                .WithMessage($"AddTask: task with Id={taskId} already exists.");
+        }
+
+        [Fact]
         public async Task ShouldAddTask_ConcurrentAddAndRemove()
         {
             // Arrange

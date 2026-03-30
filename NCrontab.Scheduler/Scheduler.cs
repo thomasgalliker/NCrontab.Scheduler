@@ -112,6 +112,11 @@ namespace NCrontab.Scheduler
         {
             lock (this.threadLock)
             {
+                if (this.scheduledTasks.Any(t => t.Id == scheduledTask.Id))
+                {
+                    throw new InvalidOperationException($"AddTask: task with Id={scheduledTask.Id} already exists.");
+                }
+
                 this.scheduledTasks.Add(scheduledTask);
 
                 if (this.IsRunning)
