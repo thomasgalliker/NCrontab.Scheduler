@@ -36,8 +36,8 @@ namespace NCrontab.Scheduler.ConsoleApp
 
             // Create instance of Scheduler manually
             // or inject IScheduler using dependency injection.
-            ILogger<Scheduler> logger = loggerFactory.CreateLogger<Scheduler>();
-            ISchedulerOptions schedulerOptions = new SchedulerOptions
+            var logger = loggerFactory.CreateLogger<Scheduler>();
+            var schedulerOptions = new SchedulerOptions
             {
                 DateTimeKind = DateTimeKind.Utc,
                 Logging = new LoggingOptions

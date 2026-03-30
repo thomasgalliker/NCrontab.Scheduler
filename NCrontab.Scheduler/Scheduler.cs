@@ -30,7 +30,7 @@ namespace NCrontab.Scheduler
 
         private readonly List<ITask> scheduledTasks = new List<ITask>();
         private readonly IDateTime dateTime;
-        private readonly ISchedulerOptions schedulerOptions;
+        private readonly SchedulerOptions schedulerOptions;
         private readonly ILogger<Scheduler> logger;
         private CancellationTokenSource localCancellationTokenSource;
         private CancellationToken externalCancellationToken;
@@ -69,7 +69,7 @@ namespace NCrontab.Scheduler
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         /// <param name="schedulerOptions">The scheduler options.</param>
-        public Scheduler(ILogger<Scheduler> logger, ISchedulerOptions schedulerOptions)
+        public Scheduler(ILogger<Scheduler> logger, SchedulerOptions schedulerOptions)
             : this(logger, new SystemDateTime(), schedulerOptions)
         {
         }
@@ -83,7 +83,7 @@ namespace NCrontab.Scheduler
         internal Scheduler(
             ILogger<Scheduler> logger,
             IDateTime dateTime,
-            ISchedulerOptions schedulerOptions)
+            SchedulerOptions schedulerOptions)
         {
             this.logger = logger;
             this.dateTime = dateTime;
@@ -323,33 +323,7 @@ namespace NCrontab.Scheduler
                         var nextTaskIds = nextTasks.Select(t => t.Id).ToArray();
                         this.RaiseNextEvent(signalTime, nextTaskIds);
 
-                        foreach (var task in nextTasks)
-                        {
-                            if (this.localCancellationTokenSource.IsCancellationRequested)
-                            {
-                                this.logger.LogDebug("Cancellation requested");
-                                break;
-                            }
-
-                            this.logger.LogDebug($"Starting task {FormatTask(task, loggingOptions)}...");
-
-                            try
-                            {
-                                if (task is IScheduledTask scheduledTask)
-                                {
-                                    scheduledTask.Run(this.localCancellationTokenSource.Token);
-                                }
-
-                                if (task is IAsyncScheduledTask asyncScheduledTask)
-                                {
-                                    await asyncScheduledTask.RunAsync(this.localCancellationTokenSource.Token);
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                this.logger.LogError(e, $"Task {FormatTask(task, loggingOptions)} failed with exception");
-                            }
-                        }
+                        await this.ExecuteTasksAsync(nextTasks, loggingOptions);
 
                         var endTime = this.dateTime.UtcNow;
                         var duration = endTime - signalTime;
@@ -362,6 +336,66 @@ namespace NCrontab.Scheduler
             finally
             {
                 this.IsRunning = false;
+            }
+        }
+
+        private Task ExecuteTasksAsync(IReadOnlyCollection<ITask> tasks, LoggingOptions loggingOptions)
+        {
+            if (this.schedulerOptions.TaskExecutionMode == TaskExecutionMode.Concurrent)
+            {
+                return this.ExecuteTasksConcurrentlyAsync(tasks, loggingOptions);
+            }
+
+            return this.ExecuteTasksSequentiallyAsync(tasks, loggingOptions);
+        }
+
+        private async Task ExecuteTasksSequentiallyAsync(IReadOnlyCollection<ITask> tasks, LoggingOptions loggingOptions)
+        {
+            foreach (var task in tasks)
+            {
+                if (this.localCancellationTokenSource.IsCancellationRequested)
+                {
+                    this.logger.LogDebug("Cancellation requested");
+                    break;
+                }
+
+                await this.ExecuteTaskAsync(task, loggingOptions);
+            }
+        }
+
+        private Task ExecuteTasksConcurrentlyAsync(IReadOnlyCollection<ITask> tasks, LoggingOptions loggingOptions)
+        {
+            if (this.localCancellationTokenSource.IsCancellationRequested)
+            {
+                this.logger.LogDebug("Cancellation requested");
+                return Task.CompletedTask;
+            }
+
+            var executionTasks = tasks
+                .Select(task => this.ExecuteTaskAsync(task, loggingOptions))
+                .ToArray();
+
+            return Task.WhenAll(executionTasks);
+        }
+
+        private async Task ExecuteTaskAsync(ITask task, LoggingOptions loggingOptions)
+        {
+            this.logger.LogDebug($"Starting task {FormatTask(task, loggingOptions)}...");
+
+            try
+            {
+                if (task is IScheduledTask scheduledTask)
+                {
+                    await Task.Run(() => scheduledTask.Run(this.localCancellationTokenSource.Token), CancellationToken.None);
+                }
+                else if (task is IAsyncScheduledTask asyncScheduledTask)
+                {
+                    await asyncScheduledTask.RunAsync(this.localCancellationTokenSource.Token);
+                }
+            }
+            catch (Exception e)
+            {
+                this.logger.LogError(e, $"Task {FormatTask(task, loggingOptions)} failed with exception");
             }
         }
 

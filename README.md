@@ -68,6 +68,7 @@ builder.Services.AddScheduler(configurationSection);
 
 Following options are available:
 - **DateTimeKind**: Interprets the given cron expressions as UTC or local time. Default is UTC.
+- **TaskExecutionMode**: Controls whether tasks due at the same instant are executed sequentially or concurrently. Default is Sequential.
 
 ### Add Scheduled Tasks
 Use method `AddTask` with all the provided convenience overloads to add tasks to the scheduler.

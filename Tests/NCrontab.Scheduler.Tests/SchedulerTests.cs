@@ -32,12 +32,16 @@ namespace NCrontab.Scheduler.Tests
             var schedulerOptions = this.autoMocker.GetMock<SchedulerOptions>();
             schedulerOptions.SetupGet(o => o.DateTimeKind)
                 .Returns(DateTimeKind.Utc);
+            schedulerOptions.SetupGet(o => o.TaskExecutionMode)
+                .Returns(TaskExecutionMode.Sequential);
             schedulerOptions.SetupGet(o => o.Logging)
                 .Returns(new LoggingOptions());
             
-            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
+            var schedulerOptionsMock = this.autoMocker.GetMock<SchedulerOptions>();
             schedulerOptionsMock.SetupGet(o => o.DateTimeKind)
                 .Returns(DateTimeKind.Utc);
+            schedulerOptionsMock.SetupGet(o => o.TaskExecutionMode)
+                .Returns(TaskExecutionMode.Sequential);
             schedulerOptionsMock.SetupGet(o => o.Logging)
                 .Returns(new LoggingOptions());
         }
@@ -223,6 +227,77 @@ namespace NCrontab.Scheduler.Tests
         }
 
         [Fact]
+        public async Task ShouldExecuteDueTasksSequentiallyByDefault()
+        {
+            // Arrange
+            var referenceDate = new DateTime(2019, 11, 06, 14, 43, 58, DateTimeKind.Utc);
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate, (n) => n.AddSeconds(1));
+
+            IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
+            var secondTaskStarted = new ManualResetEventSlim(false);
+            var firstTaskSawSecondTask = false;
+
+            scheduler.AddTask("* * * * *", _ =>
+            {
+                firstTaskSawSecondTask = secondTaskStarted.Wait(200);
+            });
+
+            scheduler.AddTask("* * * * *", _ =>
+            {
+                secondTaskStarted.Set();
+            });
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(1100))
+            {
+                await scheduler.StartAsync(cancellationTokenSource.Token);
+            }
+
+            // Assert
+            firstTaskSawSecondTask.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task ShouldExecuteDueTasksConcurrentlyWhenConfigured()
+        {
+            // Arrange
+            var referenceDate = new DateTime(2019, 11, 06, 14, 43, 58, DateTimeKind.Utc);
+            var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
+            dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate, (n) => n.AddSeconds(1));
+
+            var schedulerOptions = new SchedulerOptions
+            {
+                DateTimeKind = DateTimeKind.Utc,
+                TaskExecutionMode = TaskExecutionMode.Concurrent,
+                Logging = new LoggingOptions(),
+            };
+
+            IScheduler scheduler = new Scheduler(new TestOutputHelperLogger<Scheduler>(this.testOutputHelper), dateTimeMock.Object, schedulerOptions);
+            var secondTaskStarted = new ManualResetEventSlim(false);
+            var firstTaskSawSecondTask = false;
+
+            scheduler.AddTask("* * * * *", _ =>
+            {
+                firstTaskSawSecondTask = secondTaskStarted.Wait(200);
+            });
+
+            scheduler.AddTask("* * * * *", _ =>
+            {
+                secondTaskStarted.Set();
+            });
+
+            // Act
+            using (var cancellationTokenSource = new CancellationTokenSource(1100))
+            {
+                await scheduler.StartAsync(cancellationTokenSource.Token);
+            }
+
+            // Assert
+            firstTaskSawSecondTask.Should().BeTrue();
+        }
+
+        [Fact]
         public void ShouldThrowWhenAddingTaskWithDuplicateId_Synchronous()
         {
             // Arrange
@@ -300,7 +375,7 @@ namespace NCrontab.Scheduler.Tests
             }
 
             // Assert
-            recordedNextEvents.Count.Should().BeInRange(0, 2);
+            recordedNextEvents.Count.Should().BeInRange(0, 3);
         }
 
         [Fact]
@@ -487,17 +562,30 @@ namespace NCrontab.Scheduler.Tests
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
             dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate, (n) => clockQueue.GetNext());
 
-            var tcs = new TaskCompletionSource();
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var recordedNextEvents = new ConcurrentBag<ScheduledEventArgs>();
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.Next += (s, e) => { recordedNextEvents.Add(e); if (recordedNextEvents.Count == 2) { tcs.SetResult(); } };
+            scheduler.Next += (s, e) => { recordedNextEvents.Add(e); };
 
-            var testObjectDaily = new TestObject();
-            scheduler.AddTask("0 0 * * *", _ => testObjectDaily.Run());
+            var dailyRunCount = 0;
+            var hourlyRunCount = 0;
 
-            var testObjectHourly = new TestObject();
-            scheduler.AddTask("0 * * * *", _ => testObjectHourly.Run());
+            scheduler.AddTask("0 0 * * *", _ =>
+            {
+                if (Interlocked.Increment(ref dailyRunCount) == 1 && Volatile.Read(ref hourlyRunCount) == 2)
+                {
+                    tcs.TrySetResult();
+                }
+            });
+
+            scheduler.AddTask("0 * * * *", _ =>
+            {
+                if (Interlocked.Increment(ref hourlyRunCount) == 2 && Volatile.Read(ref dailyRunCount) == 1)
+                {
+                    tcs.TrySetResult();
+                }
+            });
 
             // Act
             using (var cancellationTokenSource = new CancellationTokenSource(60000))
@@ -513,8 +601,8 @@ namespace NCrontab.Scheduler.Tests
             recordedNextEvents.Should().HaveCount(2);
             recordedNextEvents.Should().ContainSingle(e => e.SignalTime == new DateTime(2000, 1, 1, 23, 00, 00) && e.TaskIds.Length == 1);
             recordedNextEvents.Should().ContainSingle(e => e.SignalTime == new DateTime(2000, 1, 2, 00, 00, 00) && e.TaskIds.Length == 2);
-            testObjectHourly.RunCount.Should().Be(2);
-            testObjectDaily.RunCount.Should().Be(1);
+            hourlyRunCount.Should().Be(2);
+            dailyRunCount.Should().Be(1);
         }
 
         [Fact]
@@ -572,7 +660,7 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 45, 00));
 
             var logger = new Mock<ILogger<Scheduler>>();
-            var schedulerOptionsMock = this.autoMocker.GetMock<ISchedulerOptions>();
+            var schedulerOptionsMock = this.autoMocker.GetMock<SchedulerOptions>();
 
             IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object, schedulerOptionsMock.Object);
 

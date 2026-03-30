@@ -28,7 +28,7 @@ namespace NCrontab.Scheduler
         /// Creates a new instance of the <see cref="Scheduler"/> class.
         /// </summary>
         /// <param name="options">The scheduler options.</param>
-        public IScheduler Create(ISchedulerOptions options)
+        public IScheduler Create(SchedulerOptions options)
         {
             return new Scheduler(
                 this.serviceProvider.GetRequiredService<ILogger<Scheduler>>(), 
