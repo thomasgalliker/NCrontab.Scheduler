@@ -13,7 +13,9 @@ namespace NCrontab.Scheduler
     {
         /// <summary>
         /// Starts the scheduling operations.
-        /// This is a non-blocking call.
+        /// This is a fire-and-forget, non-blocking call.
+        /// Use <see cref="IScheduler.StartAsync(System.Threading.CancellationToken)"/>
+        /// if you want to await the scheduler lifetime.
         /// </summary>
         public static void Start(this IScheduler scheduler, CancellationToken cancellationToken = default)
         {
