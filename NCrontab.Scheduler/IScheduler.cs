@@ -9,7 +9,8 @@ namespace NCrontab.Scheduler
     {
         /// <summary>
         /// Starts the scheduling operations.
-        /// This call blocks the further execution.
+        /// This call can be awaited and therefore blocks the further execution
+        /// of the caller until the scheduler stops.
         /// </summary>
         Task StartAsync(CancellationToken cancellationToken = default);
 
