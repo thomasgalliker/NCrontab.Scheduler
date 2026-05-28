@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using NCrontab.Scheduler.Internals;
 using Xunit;
 using Xunit.Abstractions;

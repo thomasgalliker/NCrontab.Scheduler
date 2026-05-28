@@ -1,5 +1,5 @@
 using System;
-using FluentAssertions;
+using AwesomeAssertions;
 using NCrontab.Scheduler.Extensions;
 using Xunit;
 
