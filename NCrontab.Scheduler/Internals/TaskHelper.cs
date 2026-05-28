@@ -10,7 +10,8 @@
             return Task.Delay(delay, cancellationToken);
         }
 
-        internal static async Task LongDelay(IDateTime dateTime, TimeSpan delay, CancellationToken cancellationToken, TimeSpan maxDelayPerIteration = default)
+        internal static async Task LongDelay(IDateTime dateTime, TimeSpan delay,
+            CancellationToken cancellationToken, TimeSpan maxDelayPerIteration = default)
         {
             if (delay == InfiniteTimeSpan)
             {
@@ -18,7 +19,7 @@
             }
             else
             {
-                if (maxDelayPerIteration == default || maxDelayPerIteration > MaxDelayPerIteration)
+                if (maxDelayPerIteration == TimeSpan.Zero || maxDelayPerIteration > MaxDelayPerIteration)
                 {
                     maxDelayPerIteration = MaxDelayPerIteration;
                 }
@@ -34,7 +35,7 @@
 
                     await Task.Delay(remaining, cancellationToken);
 
-                    remaining = (delay - (dateTime.UtcNow - startDateTime));
+                    remaining = delay - (dateTime.UtcNow - startDateTime);
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
