@@ -1,13 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using AwesomeAssertions;
-using NCrontab.Scheduler.Internals;
-using Xunit;
-using Xunit.Abstractions;
-
-namespace NCrontab.Scheduler.Tests.Internals
+﻿namespace NCrontab.Scheduler.Tests.Internals
 {
     public class TaskHelperTests
     {

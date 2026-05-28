@@ -1,16 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-using NCrontab.Scheduler.Extensions;
-using NCrontab.Scheduler.Internals;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     /// <inheritdoc/>
     public class Scheduler : IScheduler

@@ -1,5 +1,3 @@
-using System;
-
 namespace NCrontab.Scheduler.Extensions
 {
     internal static class TimeSpanExtensions

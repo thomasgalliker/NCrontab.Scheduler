@@ -1,6 +1,4 @@
-﻿using System.Threading;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     public interface IScheduledTask : ITask
     {

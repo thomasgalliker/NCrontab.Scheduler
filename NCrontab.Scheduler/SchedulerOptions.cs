@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     /// <summary>
     /// Configuration options for <see cref="Scheduler"/>.

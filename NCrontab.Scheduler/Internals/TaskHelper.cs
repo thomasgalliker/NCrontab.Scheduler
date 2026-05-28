@@ -1,8 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace NCrontab.Scheduler.Internals
+﻿namespace NCrontab.Scheduler.Internals
 {
     internal static class TaskHelper
     {

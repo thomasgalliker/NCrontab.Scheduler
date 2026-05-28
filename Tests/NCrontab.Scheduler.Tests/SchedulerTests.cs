@@ -1,21 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using AwesomeAssertions;
-using Microsoft.Extensions.Logging;
-using Moq;
-using Moq.AutoMock;
-using NCrontab.Scheduler.Internals;
-using NCrontab.Scheduler.Tests.Extensions;
-using NCrontab.Scheduler.Tests.Logging;
-using NCrontab.Scheduler.Tests.TestData;
-using Xunit;
-using Xunit.Abstractions;
-
-namespace NCrontab.Scheduler.Tests
+﻿namespace NCrontab.Scheduler.Tests
 {
     public class SchedulerTests
     {
@@ -36,7 +19,7 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(TaskExecutionMode.Sequential);
             schedulerOptions.SetupGet(o => o.Logging)
                 .Returns(new LoggingOptions());
-            
+
             var schedulerOptionsMock = this.autoMocker.GetMock<SchedulerOptions>();
             schedulerOptionsMock.SetupGet(o => o.DateTimeKind)
                 .Returns(DateTimeKind.Utc);
@@ -56,7 +39,7 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.Next += (sender, args) => { nextCount++; };
+            scheduler.Next += (_, _) => { nextCount++; };
 
             // Act
             using (var cancellationTokenSource = new CancellationTokenSource(1000))
@@ -81,7 +64,7 @@ namespace NCrontab.Scheduler.Tests
 
             var crontabSchedule = CrontabSchedule.Parse("* * * * *");
             var actionObject = new TestObject();
-            scheduler.AddTask(crontabSchedule, (cancellationToken) =>
+            scheduler.AddTask(crontabSchedule, _ =>
             {
                 actionObject.Run();
             });
@@ -106,21 +89,30 @@ namespace NCrontab.Scheduler.Tests
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
-            var options = new CrontabSchedule.ParseOptions
-            {
-                IncludingSeconds = true,
-            };
+            var options = new CrontabSchedule.ParseOptions { IncludingSeconds = true };
             var crontabSchedule = CrontabSchedule.Parse("* * * * * *", options);
             var actionObject = new TestObject();
-            scheduler.AddTask(crontabSchedule, (cancellationToken) =>
+            var completedRuns = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            scheduler.AddTask(crontabSchedule, _ =>
             {
                 actionObject.Run();
+
+                if (actionObject.RunCount == 10)
+                {
+                    completedRuns.TrySetResult();
+                    scheduler.Stop();
+                }
             });
 
             // Act
-            using (var cancellationTokenSource = new CancellationTokenSource(11000))
+            using (var cancellationTokenSource = new CancellationTokenSource(15000))
             {
-                await scheduler.StartAsync(cancellationTokenSource.Token);
+                var schedulerTask = scheduler.StartAsync(cancellationTokenSource.Token);
+                var completedTask = await Task.WhenAny(completedRuns.Task,
+                    Task.Delay(Timeout.InfiniteTimeSpan, cancellationTokenSource.Token));
+
+                completedTask.Should().Be(completedRuns.Task);
+                await schedulerTask;
             }
 
             // Arrange
@@ -145,7 +137,7 @@ namespace NCrontab.Scheduler.Tests
             var crontabSchedule = CrontabSchedule.Parse("0 12 1 11 *");
 
             var actionObject = new TestObject();
-            scheduler.AddTask(crontabSchedule, (cancellationToken) =>
+            scheduler.AddTask(crontabSchedule, _ =>
             {
                 actionObject.Run();
             });
@@ -171,7 +163,7 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var actionObject = new TestObject();
-            scheduler.AddTask("* * * * *", async (cancellationToken) =>
+            scheduler.AddTask("* * * * *", async _ =>
             {
                 await actionObject.RunAsync();
             });
@@ -197,19 +189,19 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var actionObject1 = new TestObject();
-            scheduler.AddTask("* * * * *", (cancellationToken) =>
+            scheduler.AddTask("* * * * *", _ =>
             {
                 actionObject1.Run();
             });
 
             var actionObject2 = new TestObject();
-            scheduler.AddTask("* * * * *", (cancellationToken) =>
+            scheduler.AddTask("* * * * *", _ =>
             {
                 actionObject2.Run();
             });
 
             var actionObject3 = new TestObject();
-            scheduler.AddTask("* * * * *", async (cancellationToken) =>
+            scheduler.AddTask("* * * * *", async _ =>
             {
                 await actionObject3.RunAsync();
             });
@@ -268,12 +260,11 @@ namespace NCrontab.Scheduler.Tests
 
             var schedulerOptions = new SchedulerOptions
             {
-                DateTimeKind = DateTimeKind.Utc,
-                TaskExecutionMode = TaskExecutionMode.Concurrent,
-                Logging = new LoggingOptions(),
+                DateTimeKind = DateTimeKind.Utc, TaskExecutionMode = TaskExecutionMode.Concurrent, Logging = new LoggingOptions()
             };
 
-            IScheduler scheduler = new Scheduler(new TestOutputHelperLogger<Scheduler>(this.testOutputHelper), dateTimeMock.Object, schedulerOptions);
+            IScheduler scheduler = new Scheduler(new TestOutputHelperLogger<Scheduler>(this.testOutputHelper), dateTimeMock.Object,
+                schedulerOptions);
             var secondTaskStarted = new ManualResetEventSlim(false);
             var firstTaskSawSecondTask = false;
 
@@ -308,10 +299,10 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
             var taskId = Guid.NewGuid();
 
-            scheduler.AddTask(taskId, "* * * * *", ct => { });
+            scheduler.AddTask(taskId, "* * * * *", _ => { });
 
             // Act
-            Action act = () => scheduler.AddTask(taskId, "*/2 * * * *", ct => { });
+            var act = () => scheduler.AddTask(taskId, "*/2 * * * *", _ => { });
 
             // Assert
             act.Should()
@@ -330,10 +321,10 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
             var taskId = Guid.NewGuid();
 
-            scheduler.AddTask(taskId, CrontabSchedule.Parse("* * * * *"), ct => Task.CompletedTask);
+            scheduler.AddTask(taskId, CrontabSchedule.Parse("* * * * *"), _ => Task.CompletedTask);
 
             // Act
-            Action act = () => scheduler.AddTask(taskId, CrontabSchedule.Parse("*/2 * * * *"), ct => Task.CompletedTask);
+            var act = () => scheduler.AddTask(taskId, CrontabSchedule.Parse("*/2 * * * *"), _ => Task.CompletedTask);
 
             // Assert
             act.Should()
@@ -352,9 +343,9 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var recordedNextEvents = new List<ScheduledEventArgs>();
-            scheduler.Next += (sender, args) => { recordedNextEvents.Add(args); };
+            scheduler.Next += (_, args) => { recordedNextEvents.Add(args); };
 
-            var numberOfTasks = 20;
+            const int numberOfTasks = 20;
 
             // Act
             using (var cancellationTokenSource = new CancellationTokenSource(1000))
@@ -362,11 +353,11 @@ namespace NCrontab.Scheduler.Tests
                 var startTask = Task.Run(async () =>
                 {
                     await scheduler.StartAsync(cancellationTokenSource.Token);
-                });
+                }, cancellationTokenSource.Token);
 
                 // Adding tasks concurrently
-                var taskIds = Enumerable.Range(0, numberOfTasks).Select(i => Guid.NewGuid()).ToList();
-                Parallel.ForEach(taskIds, id => scheduler.AddTask(id, "* * * * *", ct => { }));
+                var taskIds = Enumerable.Range(0, numberOfTasks).Select(_ => Guid.NewGuid()).ToList();
+                Parallel.ForEach(taskIds, id => scheduler.AddTask(id, "* * * * *", _ => { }));
 
                 // Removing tasks concurrently
                 Parallel.ForEach(taskIds, id => scheduler.RemoveTask(id));
@@ -388,8 +379,8 @@ namespace NCrontab.Scheduler.Tests
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
-            var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
-            var taskId2 = scheduler.AddTask("*/2 * * * *", (cancellationToken) => { });
+            var taskId1 = scheduler.AddTask("*/1 * * * *", _ => { });
+            var taskId2 = scheduler.AddTask("*/2 * * * *", _ => { });
             var taskId3 = Guid.NewGuid();
             var taskIds = new[] { taskId1, taskId2, taskId3 };
 
@@ -413,14 +404,14 @@ namespace NCrontab.Scheduler.Tests
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
-            var task1 = new ScheduledTask("*/1 * * * *", (cancellationToken) => { });
+            var task1 = new ScheduledTask("*/1 * * * *", _ => { });
             scheduler.AddTask(task1);
 
-            var task2 = new ScheduledTask("*/2 * * * *", (cancellationToken) => { });
+            var task2 = new ScheduledTask("*/2 * * * *", _ => { });
             scheduler.AddTask(task2);
 
-            var task3 = new ScheduledTask("*/3 * * * *", (cancellationToken) => { });
-            var tasks = new[] { task1, task2, task3 };
+            var task3 = new ScheduledTask("*/3 * * * *", _ => { });
+            var tasks = new ITask[] { task1, task2, task3 };
 
             // Act
             var results = scheduler.RemoveTasks(tasks);
@@ -442,9 +433,9 @@ namespace NCrontab.Scheduler.Tests
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
-            var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
-            var taskId2 = scheduler.AddTask("*/2 * * * *", (cancellationToken) => { });
-            var taskId3 = scheduler.AddTask("*/3 * * * *", (cancellationToken) => { });
+            var taskId1 = scheduler.AddTask("*/1 * * * *", _ => { });
+            _ = scheduler.AddTask("*/2 * * * *", _ => { });
+            _ = scheduler.AddTask("*/3 * * * *", _ => { });
 
             // Act
             var tasks = scheduler.GetTasks().ToList();
@@ -467,9 +458,9 @@ namespace NCrontab.Scheduler.Tests
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
-            var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
-            var taskId2 = scheduler.AddTask("*/2 * * * *", (cancellationToken) => { });
-            var taskId3 = scheduler.AddTask("*/3 * * * *", (cancellationToken) => { });
+            _ = scheduler.AddTask("*/1 * * * *", _ => { });
+            _ = scheduler.AddTask("*/2 * * * *", _ => { });
+            _ = scheduler.AddTask("*/3 * * * *", _ => { });
 
             // Act
             var nexts = scheduler.GetNextOccurrences(startDate).ToList();
@@ -487,16 +478,16 @@ namespace NCrontab.Scheduler.Tests
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
-            var taskId1 = scheduler.AddTask("*/1 * * * *", (cancellationToken) => { });
-            var taskId2 = scheduler.AddTask("*/2 * * * *", (cancellationToken) => { });
-            var taskId3 = scheduler.AddTask("*/3 * * * *", (cancellationToken) => { });
+            _ = scheduler.AddTask("*/1 * * * *", _ => { });
+            _ = scheduler.AddTask("*/2 * * * *", _ => { });
+            _ = scheduler.AddTask("*/3 * * * *", _ => { });
 
             // Act
             var nexts = scheduler.GetNextOccurrences(startDate, endDate).ToList();
 
             // Arrange
             nexts.Should().HaveCount(59);
-            nexts.Where(n => n.ScheduledTasks.Count() == 0).Should().HaveCount(0);
+            nexts.Where(n => !n.ScheduledTasks.Any()).Should().HaveCount(0);
             nexts.Where(n => n.ScheduledTasks.Count() == 1).Should().HaveCount(20);
             nexts.Where(n => n.ScheduledTasks.Count() == 2).Should().HaveCount(30);
             nexts.Where(n => n.ScheduledTasks.Count() == 3).Should().HaveCount(9);
@@ -514,7 +505,7 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var recordedNextEvents = new List<ScheduledEventArgs>();
-            scheduler.Next += (sender, args) => { recordedNextEvents.Add(args); };
+            scheduler.Next += (_, args) => { recordedNextEvents.Add(args); };
 
             var numberOfTasks = 10;
 
@@ -524,11 +515,11 @@ namespace NCrontab.Scheduler.Tests
                 var startTask = Task.Run(async () =>
                 {
                     await scheduler.StartAsync(cancellationTokenSource.Token);
-                });
+                }, cancellationTokenSource.Token);
 
                 // Adding tasks concurrently
-                var taskIds = Enumerable.Range(0, numberOfTasks).Select(i => Guid.NewGuid()).ToList();
-                Parallel.ForEach(taskIds, id => scheduler.AddTask(id, "* * * * *", ct => { }));
+                var taskIds = Enumerable.Range(0, numberOfTasks).Select(_ => Guid.NewGuid()).ToList();
+                Parallel.ForEach(taskIds, id => scheduler.AddTask(id, "* * * * *", _ => { }));
 
                 // Removing all tasks at once
                 scheduler.RemoveAllTasks();
@@ -550,23 +541,18 @@ namespace NCrontab.Scheduler.Tests
                 referenceDate,
                 new[]
                 {
-                    TimeSpan.Zero,
-                    TimeSpan.FromSeconds(1),
-                    TimeSpan.Zero,
-                    TimeSpan.FromSeconds(1),
-                    TimeSpan.Zero,
-                    TimeSpan.FromMinutes(59) + TimeSpan.FromSeconds(59),
-                    TimeSpan.Zero,
+                    TimeSpan.Zero, TimeSpan.FromSeconds(1), TimeSpan.Zero, TimeSpan.FromSeconds(1), TimeSpan.Zero,
+                    TimeSpan.FromMinutes(59) + TimeSpan.FromSeconds(59), TimeSpan.Zero
                 });
 
             var dateTimeMock = this.autoMocker.GetMock<IDateTime>();
-            dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate, (n) => clockQueue.GetNext());
+            dateTimeMock.SetupSequence(d => d.UtcNow, referenceDate, _ => clockQueue.GetNext());
 
             var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var recordedNextEvents = new ConcurrentBag<ScheduledEventArgs>();
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.Next += (s, e) => { recordedNextEvents.Add(e); };
+            scheduler.Next += (_, args) => { recordedNextEvents.Add(args); };
 
             var dailyRunCount = 0;
             var hourlyRunCount = 0;
@@ -622,7 +608,7 @@ namespace NCrontab.Scheduler.Tests
                 ;
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.Next += (sender, args) => { Interlocked.Increment(ref nextCount); };
+            scheduler.Next += (_, _) => { Interlocked.Increment(ref nextCount); };
 
             // Act
             using (var cancellationTokenSource = new CancellationTokenSource(4000))
@@ -630,13 +616,13 @@ namespace NCrontab.Scheduler.Tests
                 var startTask = Task.Run(async () =>
                 {
                     await scheduler.StartAsync(cancellationTokenSource.Token);
-                });
+                }, cancellationTokenSource.Token);
 
-                await Task.Delay(100);
+                await Task.Delay(100, cancellationTokenSource.Token);
 
-                var taskId = scheduler.AddTask("* * * * *", ct => { });
+                var taskId = scheduler.AddTask("* * * * *", _ => { });
 
-                await Task.Delay(1100);
+                await Task.Delay(1100, cancellationTokenSource.Token);
 
                 scheduler.RemoveTask(taskId);
 
@@ -665,7 +651,7 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object, schedulerOptionsMock.Object);
 
             var actionObject = new TestObject();
-            scheduler.AddTask("44 14 * * *", (cancellationToken) =>
+            scheduler.AddTask("44 14 * * *", _ =>
             {
                 actionObject.Run();
             });
@@ -678,10 +664,10 @@ namespace NCrontab.Scheduler.Tests
 
             // Assert
             logger.Verify(x => x.Log(LogLevel.Warning,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((o, t) => o.ToString().StartsWith("Execution finished after")),
-                    It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()), Times.Once);
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().StartsWith("Execution finished after")),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()), Times.Once);
         }
 
         [Fact]
@@ -696,7 +682,7 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
 
             var actionObject = new TestObject();
-            var taskId = scheduler.AddTask("44 14 * * *", (cancellationToken) =>
+            var taskId = scheduler.AddTask("44 14 * * *", _ =>
             {
                 actionObject.Run();
             });
@@ -707,7 +693,7 @@ namespace NCrontab.Scheduler.Tests
                 var task = Task.Run(async () =>
                 {
                     await scheduler.StartAsync(cancellationTokenSource.Token);
-                });
+                }, cancellationTokenSource.Token);
 
                 scheduler.UpdateTask(taskId, CrontabSchedule.Parse("50 14 * * *"));
 
@@ -731,7 +717,7 @@ namespace NCrontab.Scheduler.Tests
 
             var id = Guid.NewGuid();
             var actionObject = new TestObject();
-            scheduler.AddTask(id, "44 14 * * *", (cancellationToken) =>
+            scheduler.AddTask(id, "44 14 * * *", _ =>
             {
                 actionObject.Run();
             });
@@ -742,7 +728,7 @@ namespace NCrontab.Scheduler.Tests
                 var task = Task.Run(async () =>
                 {
                     await scheduler.StartAsync(cancellationTokenSource.Token);
-                });
+                }, cancellationTokenSource.Token);
 
                 scheduler.UpdateTask(id, CrontabSchedule.Parse("50 14 * * *"));
 
@@ -785,9 +771,9 @@ namespace NCrontab.Scheduler.Tests
                 var task = Task.Run(async () =>
                 {
                     await scheduler.StartAsync(cancellationTokenSource.Token);
-                });
+                }, cancellationTokenSource.Token);
 
-                await Task.Delay(2000);
+                await Task.Delay(2000, cancellationTokenSource.Token);
 
                 scheduler.Stop();
 
@@ -816,13 +802,13 @@ namespace NCrontab.Scheduler.Tests
             IScheduler scheduler = new Scheduler(logger.Object, dateTimeMock.Object, schedulerOptionsMock.Object);
 
             var testObject1 = new TestObject();
-            scheduler.AddTask(CrontabSchedule.Parse("* * * * *"), async (cancellationToken) =>
+            scheduler.AddTask(CrontabSchedule.Parse("* * * * *"), async _ =>
             {
                 await testObject1.RunAsync();
             });
 
             var testObject2 = new TestObject();
-            var failingTaskId = scheduler.AddTask(CrontabSchedule.Parse("* * * * *"), (cancellationToken) =>
+            var failingTaskId = scheduler.AddTask(CrontabSchedule.Parse("* * * * *"), _ =>
             {
                 testObject2.Run();
                 throw new Exception("Fail!!");
@@ -836,10 +822,10 @@ namespace NCrontab.Scheduler.Tests
 
             // Arrange
             logger.Verify(x => x.Log(LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Task {failingTaskId:B} failed with exception")),
-                    It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()), Times.Once);
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Task {failingTaskId:B} failed with exception")),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()), Times.Once);
 
             testObject1.RunCount.Should().Be(1);
             testObject2.RunCount.Should().Be(1);
@@ -854,7 +840,7 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
+            scheduler.AddTask("* * * * *", _ => Task.CompletedTask);
 
             scheduler.Start();
             await Task.Delay(500);
@@ -875,15 +861,15 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
+            scheduler.AddTask("* * * * *", _ => Task.CompletedTask);
 
             // Act
             using (var cancellationTokenSource = new CancellationTokenSource(2100))
             {
-                scheduler.Start();
-                await Task.Delay(500);
+                scheduler.Start(cancellationToken: cancellationTokenSource.Token);
+                await Task.Delay(500, cancellationTokenSource.Token);
                 scheduler.Stop();
-                await Task.Delay(500);
+                await Task.Delay(500, cancellationTokenSource.Token);
                 await scheduler.StartAsync(cancellationTokenSource.Token);
             }
 
@@ -903,7 +889,7 @@ namespace NCrontab.Scheduler.Tests
                 .Returns(new DateTime(2019, 11, 06, 14, 43, 59));
 
             IScheduler scheduler = this.autoMocker.CreateInstance<Scheduler>(enablePrivate: true);
-            scheduler.AddTask("* * * * *", (c) => Task.CompletedTask);
+            scheduler.AddTask("* * * * *", _ => Task.CompletedTask);
 
             scheduler.Start();
             await Task.Delay(500);

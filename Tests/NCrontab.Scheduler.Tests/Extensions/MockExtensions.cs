@@ -1,8 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
-using Moq;
-
-namespace NCrontab.Scheduler.Tests.Extensions
+﻿namespace NCrontab.Scheduler.Tests.Extensions
 {
     public static class MockExtensions
     {

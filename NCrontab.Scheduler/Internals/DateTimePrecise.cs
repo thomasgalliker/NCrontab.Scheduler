@@ -1,6 +1,3 @@
-using System;
-using System.Diagnostics;
-
 namespace NCrontab.Scheduler.Internals;
 
 /// <summary>
