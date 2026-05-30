@@ -1,8 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     public class AsyncScheduledTask : TaskBase, IAsyncScheduledTask
     {

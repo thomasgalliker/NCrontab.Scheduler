@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace NCrontab.Scheduler.Internals
+﻿namespace NCrontab.Scheduler.Internals
 {
     public interface IDateTime
     {

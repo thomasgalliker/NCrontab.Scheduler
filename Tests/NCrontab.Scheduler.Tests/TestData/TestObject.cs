@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace NCrontab.Scheduler.Tests.TestData
+﻿namespace NCrontab.Scheduler.Tests.TestData
 {
     public class TestObject
     {

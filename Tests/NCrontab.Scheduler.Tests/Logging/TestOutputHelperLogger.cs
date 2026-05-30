@@ -1,9 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
-
-namespace NCrontab.Scheduler.Tests.Logging
+﻿namespace NCrontab.Scheduler.Tests.Logging
 {
     public class TestOutputHelperLogger<T> : ILogger<T>
     {

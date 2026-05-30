@@ -17,6 +17,7 @@
     <RepositoryUrl>https://github.com/thomasgalliker/NCrontab.Scheduler</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <SignAssembly>True</SignAssembly>
+    <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 

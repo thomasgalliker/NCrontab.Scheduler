@@ -1,7 +1,4 @@
-﻿using System.Threading;
-using System;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     /// <summary>
     /// Base class for <see cref="ITask"/>.

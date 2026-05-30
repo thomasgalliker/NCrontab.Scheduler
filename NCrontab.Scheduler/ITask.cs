@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     /// <summary>
     /// Abstraction for any kind of task that can be scheduled with a <see cref="Scheduler"/> instance.

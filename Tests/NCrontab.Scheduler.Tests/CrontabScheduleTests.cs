@@ -1,7 +1,4 @@
-﻿using System;
-using FluentAssertions;
-using Xunit;
-namespace NCrontab.Scheduler.Tests
+﻿namespace NCrontab.Scheduler.Tests
 {
     /// <summary>
     /// Some tests just to demonstrate the capability to parse 6 and 7 digit cron expressions.

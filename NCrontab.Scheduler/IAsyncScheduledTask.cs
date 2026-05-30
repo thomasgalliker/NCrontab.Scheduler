@@ -1,7 +1,4 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     public interface IAsyncScheduledTask : ITask
     {

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     /// <summary>
     /// Convenience extension methods for <seealso cref="IScheduler"/>.

@@ -1,10 +1,4 @@
-﻿using System;
-using Microsoft.Extensions.Logging;
-using NCrontab.Scheduler;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Configuration;
-
-namespace Microsoft.Extensions.DependencyInjection
+﻿namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {

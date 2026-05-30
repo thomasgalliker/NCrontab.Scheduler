@@ -1,8 +1,3 @@
-using System;
-using FluentAssertions;
-using NCrontab.Scheduler.Extensions;
-using Xunit;
-
 namespace NCrontab.Scheduler.Tests.Extensions
 {
     public class TimeSpanExtensionsTests

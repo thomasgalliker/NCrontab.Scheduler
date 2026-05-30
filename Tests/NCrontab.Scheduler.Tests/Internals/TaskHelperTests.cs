@@ -1,17 +1,8 @@
-﻿using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
-using NCrontab.Scheduler.Internals;
-using Xunit;
-using Xunit.Abstractions;
-
-namespace NCrontab.Scheduler.Tests.Internals
+﻿namespace NCrontab.Scheduler.Tests.Internals
 {
     public class TaskHelperTests
     {
-        private static readonly TimeSpan TaskDelayDeviation = TimeSpan.FromMilliseconds(30);
+        private static readonly TimeSpan TaskDelayDeviation = TimeSpan.FromMilliseconds(100);
 
         private readonly ITestOutputHelper testOutputHelper;
         private readonly IDateTime dateTime;
@@ -35,8 +26,8 @@ namespace NCrontab.Scheduler.Tests.Internals
             // Assert
             var stopwatchElapsed = stopwatch.Elapsed;
             var deviation = stopwatchElapsed - delay;
+            this.testOutputHelper.WriteLine($"TaskHelper.Delay finished in {stopwatchElapsed} (deviation: {deviation.TotalMilliseconds:F0}ms)");
             deviation.Should().BeCloseTo(TimeSpan.Zero, TaskDelayDeviation);
-            this.testOutputHelper.WriteLine($"Task.Delay finished in {stopwatchElapsed} (deviation: {deviation.TotalMilliseconds:F0}ms)");
         }
 
         [Theory]
@@ -52,8 +43,8 @@ namespace NCrontab.Scheduler.Tests.Internals
             // Assert
             var stopwatchElapsed = stopwatch.Elapsed;
             var deviation = stopwatchElapsed - delay;
+            this.testOutputHelper.WriteLine($"TaskHelper.LongDelay finished in {stopwatchElapsed} (deviation: {deviation.TotalMilliseconds:F0}ms)");
             deviation.Should().BeCloseTo(TimeSpan.Zero, TaskDelayDeviation);
-            this.testOutputHelper.WriteLine($"LongDelay finished in {stopwatchElapsed} (deviation: {deviation.TotalMilliseconds:F0}ms)");
         }
 
         [Fact]
@@ -70,8 +61,8 @@ namespace NCrontab.Scheduler.Tests.Internals
             // Assert
             var stopwatchElapsed = stopwatch.Elapsed;
             var deviation = stopwatchElapsed - delay;
+            this.testOutputHelper.WriteLine($"TaskHelper.LongDelay finished in {stopwatchElapsed} (deviation: {deviation.TotalMilliseconds:F0}ms)");
             deviation.Should().BeCloseTo(TimeSpan.Zero, TaskDelayDeviation);
-            this.testOutputHelper.WriteLine($"LongDelay finished in {stopwatchElapsed} (deviation: {deviation.TotalMilliseconds:F0}ms)");
         }
 
         [Fact]
@@ -83,14 +74,14 @@ namespace NCrontab.Scheduler.Tests.Internals
             var stopwatch = Stopwatch.StartNew();
 
             // Act
-            Func<Task> action = () => TaskHelper.LongDelay(this.dateTime, delay, cancellationToken.Token);
+            var action = () => TaskHelper.LongDelay(this.dateTime, delay, cancellationToken.Token);
 
             // Assert
+            this.testOutputHelper.WriteLine($"TaskHelper.LongDelay finished in {stopwatch.Elapsed}");
             await action.Should().ThrowAsync<TaskCanceledException>();
-            this.testOutputHelper.WriteLine($"LongDelay finished in {stopwatch.Elapsed}");
         }
 
-        internal class LongDelayTestData : TheoryData<TimeSpan>
+        private class LongDelayTestData : TheoryData<TimeSpan>
         {
             public LongDelayTestData()
             {

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace NCrontab.Scheduler
+﻿namespace NCrontab.Scheduler
 {
     internal class NullTask : ITask
     {
