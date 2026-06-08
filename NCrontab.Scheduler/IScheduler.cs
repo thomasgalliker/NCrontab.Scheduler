@@ -35,6 +35,14 @@
         ITask GetTaskById(Guid taskId);
 
         /// <summary>
+        /// Returns the <seealso cref="ITask"/> for the given <paramref name="name"/>.
+        /// If the task cannot be found, null is returned.
+        /// </summary>
+        /// <param name="name">The task name.</param>
+        /// <returns><seealso cref="ITask"/> or null (if not found).</returns>
+        ITask GetTaskByName(string name);
+
+        /// <summary>
         /// Returns all tasks.
         /// </summary>
         IEnumerable<ITask> GetTasks();
