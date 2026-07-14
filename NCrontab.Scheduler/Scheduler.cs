@@ -123,6 +123,15 @@
             }
         }
 
+        /// <inheritdoc />
+        public ITask GetTaskByName(string name)
+        {
+            lock (this.threadLock)
+            {
+                return this.scheduledTasks.SingleOrDefault(t => t.Name == name);
+            }
+        }
+
         /// <inheritdoc/>
         public IEnumerable<ITask> GetTasks()
         {
